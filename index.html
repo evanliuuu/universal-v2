@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Universal v2 — Day 1 prototype</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="chrome">
+        <h1>Universal v2</h1>
+        <p class="tagline">(state, event) → (state patch, UI patch)</p>
+        <div class="chrome-controls">
+          <label>
+            Agent
+            <select id="agent-mode">
+              <option value="mock" selected>Mock (no API)</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </label>
+          <button id="reset-btn" type="button">Reset</button>
+        </div>
+      </header>
+      <div class="workspace">
+        <aside class="panel">
+          <h2>Event log</h2>
+          <pre id="event-log"></pre>
+          <h2>State</h2>
+          <pre id="state-view"></pre>
+        </aside>
+        <main class="viewport-wrap">
+          <iframe
+            id="universal-frame"
+            title="Universal program viewport"
+            sandbox="allow-scripts allow-same-origin"
+          ></iframe>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

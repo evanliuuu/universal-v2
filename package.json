@@ -1,0 +1,20 @@
+{
+  "name": "universal-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "eval": "tsx eval/run.ts"
+  },
+  "dependencies": {
+    "fast-json-patch": "^3.3.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  }
+}

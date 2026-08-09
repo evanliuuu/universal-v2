@@ -1,0 +1,111 @@
+import { WidgetNode, WidgetType } from "../protocol/types";
+
+export type RenderContext = {
+  doc: { ui: { rootId: string; widgets: Record<string, WidgetNode> } };
+  windows: Record<string, { x: number; y: number; width: number; height: number; title: string; minimized: boolean }>;
+};
+
+export type WidgetRenderer = (
+  node: WidgetNode,
+  ctx: RenderContext,
+  renderChild: (id: string) => string,
+) => string;
+
+const registry = new Map<WidgetType, WidgetRenderer>();
+
+export function registerWidget(type: WidgetType, renderer: WidgetRenderer) {
+  registry.set(type, renderer);
+}
+
+export function renderWidget(
+  node: WidgetNode,
+  ctx: RenderContext,
+  renderChild: (id: string) => string,
+): string {
+  const fn = registry.get(node.type);
+  if (!fn) {
+    return `<div data-widget-id="${node.id}" class="unknown">Unknown: ${node.type}</div>`;
+  }
+  return fn(node, ctx, renderChild);
+}
+
+function cls(node: WidgetNode, extra = ""): string {
+  const base = (node.props.className as string) ?? "";
+  return ["uw", `uw-${node.type}`, base, extra].filter(Boolean).join(" ");
+}
+
+function dataAttrs(node: WidgetNode): string {
+  const behavior = node.behavior ? ` data-behavior="${node.behavior}"` : "";
+  return `data-widget-id="${node.id}" data-widget-type="${node.type}"${behavior}`;
+}
+
+registerWidget("box", (node, _ctx, renderChild) => {
+  const kids = (node.children ?? []).map(renderChild).join("");
+  return `<div ${dataAttrs(node)} class="${cls(node)}">${kids}</div>`;
+});
+
+registerWidget("text", (node) => {
+  const text = String(node.props.text ?? "");
+  return `<span ${dataAttrs(node)} class="${cls(node)}">${escapeHtml(text)}</span>`;
+});
+
+registerWidget("button", (node) => {
+  const label = String(node.props.label ?? "Button");
+  const title = node.props.title ? ` title="${escapeHtml(String(node.props.title))}"` : "";
+  return `<button type="button" ${dataAttrs(node)} class="${cls(node)}"${title}>${escapeHtml(label)}</button>`;
+});
+
+registerWidget("input", (node) => {
+  const placeholder = node.props.placeholder
+    ? ` placeholder="${escapeHtml(String(node.props.placeholder))}"`
+    : "";
+  const value = escapeHtml(String(node.props.value ?? ""));
+  if (node.props.multiline) {
+    return `<textarea ${dataAttrs(node)} class="${cls(node)}"${placeholder}>${value}</textarea>`;
+  }
+  return `<input ${dataAttrs(node)} class="${cls(node)}" type="text" value="${value}"${placeholder} />`;
+});
+
+registerWidget("window", (node, ctx, renderChild) => {
+  const winId = String(node.props.windowId ?? "");
+  const win = ctx.windows[winId];
+  if (!win || win.minimized) return "";
+
+  const kids = (node.children ?? []).map(renderChild).join("");
+  const title = escapeHtml(String(node.props.title ?? win.title ?? "Window"));
+  const style = `left:${win.x}px;top:${win.y}px;width:${win.width}px;height:${win.height}px`;
+
+  return `<div ${dataAttrs(node)} class="${cls(node, "uw-window-chrome")}" style="${style}" data-window-id="${winId}">
+    <div class="uw-titlebar">
+      <div class="uw-window-controls"><span class="close" data-action="close-window" data-window-id="${winId}"></span></div>
+      <div class="uw-window-title">${title}</div>
+    </div>
+    <div class="uw-window-body">${kids}</div>
+  </div>`;
+});
+
+export function renderTree(ctx: RenderContext): string {
+  const root = ctx.doc.ui.widgets[ctx.doc.ui.rootId];
+  if (!root) return "<div>Missing root</div>";
+
+  const seen = new Set<string>();
+  function renderChild(id: string): string {
+    if (seen.has(id)) return "";
+    seen.add(id);
+    const node = ctx.doc.ui.widgets[id];
+    if (!node) return "";
+    return renderWidget(node, ctx, renderChild);
+  }
+
+  return renderChild(root.id);
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export { escapeHtml };

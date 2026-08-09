@@ -1,0 +1,249 @@
+import { UniversalState, WidgetNode } from "../protocol/types";
+
+function w(node: WidgetNode): WidgetNode {
+  return node;
+}
+
+/** Seed desktop: menubar, dock, one dock icon that opens calendar via agent. */
+export function createSeedState(): UniversalState {
+  const widgets: Record<string, WidgetNode> = {
+    screen: w({
+      id: "screen",
+      type: "box",
+      props: { className: "screen" },
+      children: ["menubar", "desktop", "dock"],
+    }),
+    menubar: w({
+      id: "menubar",
+      type: "box",
+      props: { className: "menubar" },
+      children: ["menubar-left", "menubar-right"],
+    }),
+    "menubar-left": w({
+      id: "menubar-left",
+      type: "text",
+      props: { text: "🤖 Universal", className: "menubar-section" },
+    }),
+    "menubar-right": w({
+      id: "menubar-right",
+      type: "text",
+      props: {
+        text: new Date().toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }),
+        className: "menubar-section",
+      },
+    }),
+    desktop: w({
+      id: "desktop",
+      type: "box",
+      props: { className: "desktop" },
+      children: [],
+    }),
+    dock: w({
+      id: "dock",
+      type: "box",
+      props: { className: "dock" },
+      children: ["dock-calendar", "dock-notes"],
+    }),
+    "dock-calendar": w({
+      id: "dock-calendar",
+      type: "button",
+      props: { label: "📅", title: "Calendar", className: "dock-icon" },
+      behavior: "agent",
+    }),
+    "dock-notes": w({
+      id: "dock-notes",
+      type: "button",
+      props: { label: "🗒️", title: "Notes", className: "dock-icon" },
+      behavior: "agent",
+    }),
+  };
+
+  return {
+    meta: { theme: "cupertino", locale: "en", version: 1 },
+    desktop: { rootId: "screen", dock: ["dock-calendar", "dock-notes"] },
+    windows: {},
+    widgets,
+    focus: {},
+    apps: {},
+  };
+}
+
+export function calendarWindowPatches(): {
+  statePatch: import("../protocol/types").JsonPatchOp[];
+  uiPatch: import("../protocol/types").JsonPatchOp[];
+} {
+  const winId = "win-calendar";
+  const rootId = "calendar-root";
+  const statePatch = [
+  {
+    op: "add" as const,
+    path: `/windows/${winId}`,
+    value: {
+      id: winId,
+      title: "Calendar",
+      x: 120,
+      y: 96,
+      width: 520,
+      height: 400,
+      rootId,
+      minimized: false,
+    },
+  },
+  {
+    op: "add" as const,
+    path: `/widgets/${rootId}`,
+    value: {
+      id: rootId,
+      type: "window",
+      props: { title: "Calendar", windowId: winId },
+      children: ["calendar-toolbar", "calendar-body"],
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/calendar-toolbar",
+    value: {
+      id: "calendar-toolbar",
+      type: "box",
+      props: { className: "toolbar" },
+      children: ["cal-prev", "cal-label", "cal-next"],
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/cal-prev",
+    value: {
+      id: "cal-prev",
+      type: "button",
+      props: { label: "◀", className: "toolbar-btn" },
+      behavior: "local",
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/cal-label",
+    value: {
+      id: "cal-label",
+      type: "text",
+      props: { text: "August 2026", className: "toolbar-label" },
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/cal-next",
+    value: {
+      id: "cal-next",
+      type: "button",
+      props: { label: "▶", className: "toolbar-btn" },
+      behavior: "local",
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/calendar-body",
+    value: {
+      id: "calendar-body",
+      type: "box",
+      props: { className: "calendar-grid" },
+      children: ["day-15"],
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/day-15",
+    value: {
+      id: "day-15",
+      type: "button",
+      props: { label: "15", className: "day-cell" },
+      behavior: "local",
+    },
+  },
+  {
+    op: "add" as const,
+    path: "/widgets/desktop/children/-",
+    value: rootId,
+  },
+  {
+    op: "replace" as const,
+    path: "/focus",
+    value: { windowId: winId, widgetId: "dock-calendar" },
+  },
+  {
+    op: "add" as const,
+    path: "/apps/calendar",
+    value: { open: true, selectedDate: null, view: "month" },
+  },
+];
+
+  const uiPatch = statePatch.filter((op) => op.path.startsWith("/widgets"));
+  return { statePatch, uiPatch };
+}
+
+export function notesWindowPatches(): {
+  statePatch: import("../protocol/types").JsonPatchOp[];
+  uiPatch: import("../protocol/types").JsonPatchOp[];
+} {
+  const winId = "win-notes";
+  const rootId = "notes-root";
+  const statePatch = [
+    {
+      op: "add" as const,
+      path: `/windows/${winId}`,
+      value: {
+        id: winId,
+        title: "Notes",
+        x: 200,
+        y: 120,
+        width: 420,
+        height: 320,
+        rootId,
+        minimized: false,
+      },
+    },
+    {
+      op: "add" as const,
+      path: `/widgets/${rootId}`,
+      value: {
+        id: rootId,
+        type: "window",
+        props: { title: "Notes", windowId: winId },
+        children: ["notes-input"],
+      },
+    },
+    {
+      op: "add" as const,
+      path: "/widgets/notes-input",
+      value: {
+        id: "notes-input",
+        type: "input",
+        props: {
+          placeholder: "Type a note…",
+          value: "",
+          multiline: true,
+        },
+        behavior: "local",
+      },
+    },
+    {
+      op: "add" as const,
+      path: "/widgets/desktop/children/-",
+      value: rootId,
+    },
+    {
+      op: "replace" as const,
+      path: "/focus",
+      value: { windowId: winId, widgetId: "dock-notes" },
+    },
+    {
+      op: "add" as const,
+      path: "/apps/notes",
+      value: { open: true, body: "" },
+    },
+  ];
+  const uiPatch = statePatch.filter((op) => op.path.startsWith("/widgets"));
+  return { statePatch, uiPatch };
+}
