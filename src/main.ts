@@ -4,6 +4,11 @@ import { RuntimeStore } from "./state/store";
 import { UniversalRuntime, tierLabel } from "./runtime/loop";
 import { SessionPersistence } from "./persistence/event-log";
 import { createWsSync } from "./transport/ws-sync";
+import {
+  buildSessionExport,
+  downloadSessionJson,
+  parseSessionImport,
+} from "./persistence/export";
 
 const eventLogEl = document.getElementById("event-log")!;
 const stateViewEl = document.getElementById("state-view")!;
@@ -16,6 +21,8 @@ const agentModeSelect = document.getElementById("agent-mode") as HTMLSelectEleme
 const resetBtn = document.getElementById("reset-btn")!;
 const clearDbBtn = document.getElementById("clear-db-btn")!;
 const replayBtn = document.getElementById("replay-btn")!;
+const exportBtn = document.getElementById("export-btn")!;
+const importInput = document.getElementById("import-input") as HTMLInputElement;
 const instructBtn = document.getElementById("instruct-btn")!;
 const instructInput = document.getElementById("instruct-input") as HTMLInputElement;
 
@@ -64,9 +71,10 @@ async function boot() {
 
     const pf = runtime.getPrefetchStats();
     const budget = runtime.getBudgetStats();
+    const drift = runtime.getDriftStats();
     sessionInfoEl.textContent = `session ${store.getSessionId().slice(0, 8)}… · seq ${store.getSeq()}`;
     statsEl.textContent =
-      `tokens ${budget.tokensUsed}/${budget.tokenLimit} · prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached`;
+      `tokens ${budget.tokensUsed}/${budget.tokenLimit} · prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached · drift recoveries ${drift.events}`;
     serverEl.textContent = runtime.getWsConnected()
       ? "server: connected (ws)"
       : "server: local only (idb)";
@@ -97,6 +105,57 @@ async function boot() {
     void runtime.replay((step) => {
       eventLogEl.textContent = `Replaying… seq ${step.seq} [${step.tier}] ${step.event.type}`;
     }).then(() => paint());
+  });
+
+  exportBtn.addEventListener("click", () => {
+    void (async () => {
+      const events = await persistence.getEvents(store.getSessionId());
+      const payload = buildSessionExport({
+        sessionId: store.getSessionId(),
+        seq: store.getSeq(),
+        document: store.getDocument(),
+        events,
+      });
+      downloadSessionJson(payload);
+    })();
+  });
+
+  importInput.addEventListener("change", () => {
+    const file = importInput.files?.[0];
+    if (!file) return;
+    void (async () => {
+      try {
+        const data = await parseSessionImport(file);
+        store.newSession(data.document, data.sessionId);
+        store.setSeq(data.seq);
+        for (const record of data.events) {
+          store.appendLog({
+            seq: record.seq,
+            event: record.event,
+            tier: record.tier,
+            modelTier: record.modelTier,
+            prefetchHit: record.prefetchHit,
+            patches: record.patches,
+            latencyMs: record.latencyMs,
+          });
+        }
+        await persistence.saveSession({
+          id: data.sessionId,
+          createdAt: data.exportedAt,
+          updatedAt: new Date().toISOString(),
+          seq: data.seq,
+          document: data.document,
+        });
+        runtime.render();
+        paint();
+      } catch (error) {
+        errorEl.textContent =
+          error instanceof Error ? error.message : "Import failed";
+        errorEl.hidden = false;
+      } finally {
+        importInput.value = "";
+      }
+    })();
   });
 
   instructBtn.addEventListener("click", () => {

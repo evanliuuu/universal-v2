@@ -52,8 +52,8 @@ export class RuntimeStore {
     this.emit();
   }
 
-  newSession(doc: UniversalDocument) {
-    this.sessionId = crypto.randomUUID();
+  newSession(doc: UniversalDocument, sessionId?: string) {
+    this.sessionId = sessionId ?? crypto.randomUUID();
     this.seq = 0;
     this.log = [];
     this.nextId = 1;

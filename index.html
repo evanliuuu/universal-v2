@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Universal v2 — Day 4</title>
+    <title>Universal v2 — Day 5</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
@@ -22,6 +22,11 @@
           <input id="instruct-input" type="text" placeholder="Instruction (big tier)…" />
           <button id="instruct-btn" type="button">Send</button>
           <button id="replay-btn" type="button" title="Replay event log from IndexedDB">Replay</button>
+          <button id="export-btn" type="button" title="Download session JSON">Export</button>
+          <label class="import-label">
+            Import
+            <input id="import-input" type="file" accept="application/json,.json" hidden />
+          </label>
           <button id="reset-btn" type="button">Reset</button>
           <button id="clear-db-btn" type="button" title="Clear IndexedDB and reset">Clear DB</button>
         </div>
