@@ -1,0 +1,14 @@
+{
+  "name": "open-notes",
+  "description": "Dock → notes window opens",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": { "type": "input", "targetId": "notes-input", "value": "hello world" },
+      "assert": { "path": "/widgets/notes-input/props/value", "eq": "hello world" }
+    }
+  ]
+}

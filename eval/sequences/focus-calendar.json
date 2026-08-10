@@ -1,0 +1,15 @@
+{
+  "name": "focus-calendar-compiled",
+  "description": "Open calendar, re-click dock uses compiled focus handler",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "compiled"
+    }
+  ]
+}
