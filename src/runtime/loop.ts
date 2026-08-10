@@ -11,17 +11,27 @@ import {
   cloneDocument,
   UniversalDocument,
 } from "../state/patch";
+import { safeApplyPatches } from "../state/safe-patch";
 import {
   KEYFRAME_EVERY_N_EVENTS,
   SessionPersistence,
 } from "../persistence/event-log";
 import { runAgent, prefetchAgent, AgentMode } from "../agent/loop";
 import { executionTierForModel, routeModelTier } from "../agent/router";
+import {
+  canPrefetch,
+  canRunAgent,
+  chargeTokensPatch,
+  estimateTokens,
+  getBudget,
+} from "../agent/budget";
 import { likelyPrefetchEvents, PrefetchCache } from "../agent/prefetch";
 import { RuntimeStore, createSemanticEvent, tierLabel } from "../state/store";
 import { tryReflex } from "./reflex";
 import { tryCompiled } from "./compiled";
 import { mountViewport } from "./renderer";
+import { viewportBridge } from "./viewport-bridge";
+import { replaySession, ReplayStep } from "./replay";
 
 export type { AgentMode };
 
@@ -32,6 +42,7 @@ export class UniversalRuntime {
   private prefetch = new PrefetchCache();
   private agentMode: AgentMode = "mock";
   private busy = false;
+  private lastError: string | null = null;
   private onStats?: () => void;
 
   constructor(
@@ -58,9 +69,19 @@ export class UniversalRuntime {
     return this.prefetch.stats();
   }
 
+  getBudgetStats() {
+    return getBudget(this.store.getState());
+  }
+
+  getLastError() {
+    return this.lastError;
+  }
+
   async reset(doc: UniversalDocument) {
     this.store.newSession(doc);
     this.prefetch.clear();
+    this.lastError = null;
+    viewportBridge.reset();
     await this.persistence.clearAll();
     await this.persistSnapshot();
     this.render();
@@ -75,9 +96,26 @@ export class UniversalRuntime {
     mountViewport(this.iframe, this.store.getDocument());
   }
 
+  async replay(onStep?: (step: ReplayStep) => void) {
+    const doc = await replaySession(
+      this.persistence,
+      this.store.getSessionId(),
+      onStep,
+    );
+    this.store.setDocument(doc);
+    this.render();
+    this.onStats?.();
+  }
+
   private onViewportMessage(event: MessageEvent) {
     const data = event.data;
     if (!data || data.source !== "universal-viewport") return;
+
+    if (data.type === "ready") {
+      viewportBridge.markReady();
+      this.render();
+      return;
+    }
 
     if (data.type === "close_window") {
       void this.dispatch(
@@ -113,6 +151,7 @@ export class UniversalRuntime {
   async dispatch(event: SemanticEvent): Promise<void> {
     if (this.busy && event.type !== "instruction") return;
     this.busy = true;
+    this.lastError = null;
     const start = performance.now();
     const doc = this.store.getDocument();
     const patches: AppliedPatch[] = [];
@@ -121,7 +160,12 @@ export class UniversalRuntime {
     try {
       const reflex = tryReflex(doc, event);
       if (reflex.handled) {
-        await this.applyPatches(doc, reflex.statePatch, reflex.uiPatch, patches);
+        const ok = await this.applyPatches(
+          reflex.statePatch,
+          reflex.uiPatch,
+          patches,
+        );
+        if (!ok) return;
         await this.finishDispatch({
           event,
           seq,
@@ -134,12 +178,12 @@ export class UniversalRuntime {
 
       const compiled = tryCompiled(doc, event);
       if (compiled.handled) {
-        await this.applyPatches(
-          doc,
+        const ok = await this.applyPatches(
           compiled.statePatch,
           compiled.uiPatch,
           patches,
         );
+        if (!ok) return;
         await this.finishDispatch({
           event,
           seq,
@@ -152,7 +196,8 @@ export class UniversalRuntime {
 
       const prefetched = this.prefetch.get(event);
       if (prefetched) {
-        await this.applyAgentResponse(doc, prefetched, patches);
+        const ok = await this.applyAgentResponse(prefetched, patches);
+        if (!ok) return;
         await this.finishDispatch({
           event,
           seq,
@@ -164,6 +209,12 @@ export class UniversalRuntime {
         return;
       }
 
+      if (!canRunAgent(doc.state)) {
+        this.lastError = "Token budget exhausted for this session.";
+        this.onStats?.();
+        return;
+      }
+
       const modelTier = routeModelTier(event, doc.state);
       const response = await runAgent({
         mode: this.agentMode,
@@ -172,7 +223,17 @@ export class UniversalRuntime {
         event,
       });
 
-      await this.applyAgentResponse(doc, response, patches);
+      const tokenOps = [
+        chargeTokensPatch(
+          doc.state,
+          estimateTokens([...response.statePatch, ...response.uiPatch]),
+        ),
+      ];
+      response.statePatch = [...response.statePatch, ...tokenOps];
+
+      const ok = await this.applyAgentResponse(response, patches);
+      if (!ok) return;
+
       await this.finishDispatch({
         event,
         seq,
@@ -189,31 +250,40 @@ export class UniversalRuntime {
   }
 
   private async applyPatches(
-    _doc: UniversalDocument,
     statePatch: AgentResponse["statePatch"],
     uiPatch: AgentResponse["uiPatch"],
     patches: AppliedPatch[],
-  ) {
-    let next = cloneDocument(this.store.getDocument());
-    if (statePatch.length) {
-      next = applyStatePatch(next, statePatch);
-      patches.push({ target: "state", ops: statePatch });
+  ): Promise<boolean> {
+    const result = safeApplyPatches(
+      this.store.getDocument(),
+      statePatch,
+      uiPatch,
+    );
+    if (!result.ok) {
+      this.lastError = `Patch rejected: ${result.error}`;
+      this.onStats?.();
+      return false;
     }
-    if (uiPatch.length) {
-      next = applyUiPatch(next, uiPatch);
-      patches.push({ target: "ui", ops: uiPatch });
-    }
-    this.store.setDocument(next);
+
+    if (statePatch.length) patches.push({ target: "state", ops: statePatch });
+    if (uiPatch.length) patches.push({ target: "ui", ops: uiPatch });
+
+    this.store.setDocument(result.doc);
     this.render();
+    return true;
   }
 
   private async applyAgentResponse(
-    doc: UniversalDocument,
     response: AgentResponse,
     patches: AppliedPatch[],
-  ) {
-    await this.applyPatches(doc, response.statePatch, response.uiPatch, patches);
+  ): Promise<boolean> {
+    const ok = await this.applyPatches(
+      response.statePatch,
+      response.uiPatch,
+      patches,
+    );
     if (
+      ok &&
       !response.uiPatch.length &&
       response.statePatch.some((op) => op.path.startsWith("/widgets"))
     ) {
@@ -222,6 +292,7 @@ export class UniversalRuntime {
         ops: response.statePatch.filter((op) => op.path.startsWith("/widgets")),
       });
     }
+    return ok;
   }
 
   private async finishDispatch(opts: {
@@ -275,19 +346,22 @@ export class UniversalRuntime {
 
   private async schedulePrefetch() {
     const state = this.store.getState();
+    const stats = this.prefetch.stats();
+    if (!canPrefetch(state, stats.pending)) return;
+
     const events = likelyPrefetchEvents(state);
 
     for (const event of events) {
+      if (!canPrefetch(this.store.getState(), this.prefetch.stats().pending)) {
+        break;
+      }
+
       const key = eventKey(event);
       if (this.prefetch.has(event) || this.prefetch.isInFlight(key)) continue;
 
       this.prefetch.markInFlight(key);
       try {
-        const response = await prefetchAgent(
-          this.agentMode,
-          state,
-          event,
-        );
+        const response = await prefetchAgent(this.agentMode, state, event);
         this.prefetch.set(event, response);
       } catch {
         // Prefetch is best-effort
@@ -298,3 +372,5 @@ export class UniversalRuntime {
     this.onStats?.();
   }
 }
+
+export { tierLabel };
