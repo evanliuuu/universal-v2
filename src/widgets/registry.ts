@@ -120,6 +120,12 @@ registerWidget("form", (node, _ctx, renderChild) => {
   return `<form ${dataAttrs(node)} class="${cls(node)}" onsubmit="return false">${kids}</form>`;
 });
 
+registerWidget("checkbox", (node) => {
+  const label = String(node.props.label ?? "");
+  const checked = node.props.checked ? " checked" : "";
+  return `<label ${dataAttrs(node)} class="${cls(node, "uw-checkbox")}"><input type="checkbox"${checked} /> ${escapeHtml(label)}</label>`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];

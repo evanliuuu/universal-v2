@@ -1,5 +1,6 @@
 import { JsonPatchOp, SemanticEvent } from "../protocol/types";
 import { UniversalDocument } from "../state/patch";
+import { getBudget } from "../agent/budget";
 
 export type ReflexResult = {
   handled: boolean;
@@ -40,24 +41,46 @@ export function tryReflex(
   const behavior = widget.behavior ?? (event.type === "input" ? "local" : "agent");
   if (behavior !== "local") return empty;
 
-  if (event.type === "input" && typeof event.value === "string") {
-    return {
-      handled: true,
-      statePatch: [
-        {
-          op: "replace",
-          path: `/widgets/${targetId}/props/value`,
-          value: event.value,
-        },
-      ],
-      uiPatch: [
-        {
-          op: "replace",
-          path: `/widgets/${targetId}/props/value`,
-          value: event.value,
-        },
-      ],
-    };
+  if (event.type === "input") {
+    if (targetId === "prefetch-toggle") {
+      const enabled = event.value === true || event.value === "true";
+      const budget = getBudget(doc.state);
+      const rows = [
+        ["Token limit", String(budget.tokenLimit)],
+        ["Tokens used", String(budget.tokensUsed)],
+        ["Prefetch", enabled ? "enabled" : "disabled"],
+      ];
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/meta/budget/prefetchEnabled", value: enabled },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/prefetch-toggle/props/checked", value: enabled },
+          { op: "replace", path: "/widgets/budget-table/props/rows", value: rows },
+        ],
+      };
+    }
+
+    if (typeof event.value === "string") {
+      return {
+        handled: true,
+        statePatch: [
+          {
+            op: "replace",
+            path: `/widgets/${targetId}/props/value`,
+            value: event.value,
+          },
+        ],
+        uiPatch: [
+          {
+            op: "replace",
+            path: `/widgets/${targetId}/props/value`,
+            value: event.value,
+          },
+        ],
+      };
+    }
   }
 
   if (event.type === "click" && targetId === "day-15") {

@@ -50,6 +50,7 @@ export const WidgetTypeSchema = z.enum([
   "tabs",
   "table",
   "form",
+  "checkbox",
   "window",
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;

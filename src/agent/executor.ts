@@ -1,4 +1,4 @@
-import { AgentResponse } from "../protocol/types";
+import { AgentResponse, UniversalState } from "../protocol/types";
 import { AgentPlan } from "./planner";
 import {
   calendarWindowPatches,
@@ -19,7 +19,10 @@ const DOCK: Record<string, string> = {
 };
 
 /** Executor: turn a plan into validated patch deltas. */
-export function executePlan(plan: AgentPlan): AgentResponse {
+export function executePlan(
+  plan: AgentPlan,
+  state?: UniversalState,
+): AgentResponse {
   switch (plan.action) {
     case "open_app": {
       if (plan.app === "calendar") {
@@ -29,7 +32,7 @@ export function executePlan(plan: AgentPlan): AgentResponse {
         return { ...notesWindowPatches(), rationale: plan.rationale };
       }
       if (plan.app === "settings") {
-        return { ...settingsWindowPatches(), rationale: plan.rationale };
+        return { ...settingsWindowPatches(state), rationale: plan.rationale };
       }
       break;
     }

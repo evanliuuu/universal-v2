@@ -1,4 +1,5 @@
 import { UniversalState, WidgetNode } from "../protocol/types";
+import { getBudget, DEFAULT_BUDGET } from "../agent/budget";
 
 function w(node: WidgetNode): WidgetNode {
   return node;
@@ -297,12 +298,13 @@ export function notesWindowPatches(): {
   return { statePatch, uiPatch };
 }
 
-export function settingsWindowPatches(): {
+export function settingsWindowPatches(state?: UniversalState): {
   statePatch: import("../protocol/types").JsonPatchOp[];
   uiPatch: import("../protocol/types").JsonPatchOp[];
 } {
   const winId = "win-settings";
   const rootId = "settings-root";
+  const budget = state ? getBudget(state) : DEFAULT_BUDGET;
   const statePatch = [
     {
       op: "add" as const,
@@ -400,7 +402,7 @@ export function settingsWindowPatches(): {
         id: "settings-system",
         type: "box",
         props: { className: "settings-panel tab-panel-system hidden-tab-panel" },
-        children: ["budget-table"],
+        children: ["budget-table", "prefetch-toggle"],
       },
     },
     {
@@ -412,169 +414,24 @@ export function settingsWindowPatches(): {
         props: {
           columns: ["Setting", "Value"],
           rows: [
-            ["Token limit", "50000"],
-            ["Tokens used", "0"],
-            ["Prefetch", "enabled"],
+            ["Token limit", String(budget.tokenLimit)],
+            ["Tokens used", String(budget.tokensUsed)],
+            ["Prefetch", budget.prefetchEnabled ? "enabled" : "disabled"],
           ],
         },
       },
     },
     {
       op: "add" as const,
-      path: "/widgets/desktop/children/-",
-      value: rootId,
-    },
-    {
-      op: "replace" as const,
-      path: "/focus",
-      value: { windowId: winId, widgetId: "dock-settings" },
-    },
-    {
-      op: "add" as const,
-      path: "/apps/settings",
-      value: { open: true, activeTab: "general" },
-    },
-    {
-      op: "add" as const,
-      path: "/handlers/focus-settings",
+      path: "/widgets/prefetch-toggle",
       value: {
-        match: { type: "click", targetId: "dock-settings" },
-        when: "!!state.windows['win-settings']",
-        statePatch: [
-          {
-            op: "replace",
-            path: "/focus",
-            value: { windowId: winId, widgetId: "dock-settings" },
-          },
-        ],
-        uiPatch: [],
-      },
-    },
-  ];
-  const uiPatch = statePatch.filter((op) => op.path.startsWith("/widgets"));
-  return { statePatch, uiPatch };
-}
-
-export function settingsWindowPatches(): {
-  statePatch: import("../protocol/types").JsonPatchOp[];
-  uiPatch: import("../protocol/types").JsonPatchOp[];
-} {
-  const winId = "win-settings";
-  const rootId = "settings-root";
-  const statePatch = [
-    {
-      op: "add" as const,
-      path: `/windows/${winId}`,
-      value: {
-        id: winId,
-        title: "Settings",
-        x: 160,
-        y: 100,
-        width: 560,
-        height: 420,
-        rootId,
-        minimized: false,
-      },
-    },
-    {
-      op: "add" as const,
-      path: `/widgets/${rootId}`,
-      value: {
-        id: rootId,
-        type: "window",
-        props: { title: "Settings", windowId: winId },
-        children: ["settings-tabs"],
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/settings-tabs",
-      value: {
-        id: "settings-tabs",
-        type: "tabs",
+        id: "prefetch-toggle",
+        type: "checkbox",
         props: {
-          activeTab: "general",
-          tabs: [
-            { id: "general", label: "General" },
-            { id: "system", label: "System" },
-          ],
+          label: "Enable speculative prefetch",
+          checked: budget.prefetchEnabled,
         },
-        children: ["settings-general", "settings-system"],
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/settings-general",
-      value: {
-        id: "settings-general",
-        type: "form",
-        props: { className: "settings-form tab-panel-general" },
-        children: ["theme-label", "theme-cupertino", "theme-dark", "theme-win95"],
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/theme-label",
-      value: {
-        id: "theme-label",
-        type: "label",
-        props: { text: "Theme", className: "" },
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/theme-cupertino",
-      value: {
-        id: "theme-cupertino",
-        type: "button",
-        props: { label: "Cupertino", className: "theme-btn" },
         behavior: "local",
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/theme-dark",
-      value: {
-        id: "theme-dark",
-        type: "button",
-        props: { label: "Dark", className: "theme-btn" },
-        behavior: "local",
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/theme-win95",
-      value: {
-        id: "theme-win95",
-        type: "button",
-        props: { label: "Win95", className: "theme-btn" },
-        behavior: "local",
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/settings-system",
-      value: {
-        id: "settings-system",
-        type: "box",
-        props: { className: "settings-panel tab-panel-system hidden-tab-panel" },
-        children: ["budget-table"],
-      },
-    },
-    {
-      op: "add" as const,
-      path: "/widgets/budget-table",
-      value: {
-        id: "budget-table",
-        type: "table",
-        props: {
-          columns: ["Setting", "Value"],
-          rows: [
-            ["Token limit", "50000"],
-            ["Tokens used", "0"],
-            ["Prefetch", "enabled"],
-          ],
-        },
       },
     },
     {
