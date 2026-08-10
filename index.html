@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Universal v2 — Day 1 prototype</title>
+    <title>Universal v2 — Day 2</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <div id="app">
       <header class="chrome">
         <h1>Universal v2</h1>
-        <p class="tagline">(state, event) → (state patch, UI patch)</p>
+        <p class="tagline">reflex → compiled → prefetch → agent (fast/big)</p>
         <div class="chrome-controls">
           <label>
             Agent
@@ -19,11 +19,16 @@
               <option value="openrouter">OpenRouter</option>
             </select>
           </label>
+          <input id="instruct-input" type="text" placeholder="Instruction (big tier)…" />
+          <button id="instruct-btn" type="button">Send</button>
           <button id="reset-btn" type="button">Reset</button>
+          <button id="clear-db-btn" type="button" title="Clear IndexedDB and reset">Clear DB</button>
         </div>
       </header>
       <div class="workspace">
         <aside class="panel">
+          <p id="session-info" class="meta"></p>
+          <p id="stats" class="meta"></p>
           <h2>Event log</h2>
           <pre id="event-log"></pre>
           <h2>State</h2>

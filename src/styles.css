@@ -84,6 +84,23 @@ body {
   color: #8b9cb3;
 }
 
+.meta {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: #6d7f96;
+  font-family: ui-monospace, monospace;
+}
+
+.chrome-controls input[type="text"] {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #3a4a5c;
+  background: #1e2836;
+  color: inherit;
+  min-width: 200px;
+}
+
 .panel pre {
   margin: 0 0 12px;
   padding: 10px;
