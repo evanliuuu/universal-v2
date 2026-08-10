@@ -66,6 +66,23 @@ registerWidget("input", (node) => {
   return `<input ${dataAttrs(node)} class="${cls(node)}" type="text" value="${value}"${placeholder} />`;
 });
 
+registerWidget("label", (node) => {
+  const text = String(node.props.text ?? "");
+  return `<label ${dataAttrs(node)} class="${cls(node)}">${escapeHtml(text)}</label>`;
+});
+
+registerWidget("list", (node) => {
+  const items = (node.props.items as Array<{ id?: string; label?: string } | string>) ?? [];
+  const lis = items
+    .map((item) => {
+      const label = typeof item === "string" ? item : (item.label ?? "");
+      const id = typeof item === "string" ? "" : (item.id ?? "");
+      return `<li class="uw-list-item" data-item-id="${escapeHtml(id)}">${escapeHtml(label)}</li>`;
+    })
+    .join("");
+  return `<ul ${dataAttrs(node)} class="${cls(node)}">${lis}</ul>`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];
