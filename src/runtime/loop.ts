@@ -32,6 +32,7 @@ import { tryCompiled } from "./compiled";
 import { mountViewport } from "./renderer";
 import { viewportBridge } from "./viewport-bridge";
 import { replaySession, ReplayStep } from "./replay";
+import { WsSync } from "../transport/ws-sync";
 
 export type { AgentMode };
 
@@ -44,15 +45,18 @@ export class UniversalRuntime {
   private busy = false;
   private lastError: string | null = null;
   private onStats?: () => void;
+  private wsSync: WsSync | null;
 
   constructor(
     store: RuntimeStore,
     iframe: HTMLIFrameElement,
     persistence: SessionPersistence,
+    wsSync: WsSync | null = null,
   ) {
     this.store = store;
     this.iframe = iframe;
     this.persistence = persistence;
+    this.wsSync = wsSync;
     window.addEventListener("message", (e) => this.onViewportMessage(e));
   }
 
@@ -75,6 +79,10 @@ export class UniversalRuntime {
 
   getLastError() {
     return this.lastError;
+  }
+
+  getWsConnected() {
+    return this.wsSync?.connected ?? false;
   }
 
   async reset(doc: UniversalDocument) {
@@ -326,6 +334,18 @@ export class UniversalRuntime {
       at: new Date().toISOString(),
     });
 
+    this.wsSync?.pushEvent(this.store.getSessionId(), {
+      sessionId: this.store.getSessionId(),
+      seq: opts.seq,
+      event: opts.event,
+      tier: opts.tier,
+      modelTier: opts.modelTier,
+      prefetchHit: opts.prefetchHit,
+      patches: opts.patches,
+      latencyMs: opts.latencyMs,
+      at: new Date().toISOString(),
+    });
+
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
       await this.persistSnapshot();
     }
@@ -342,6 +362,11 @@ export class UniversalRuntime {
       seq: this.store.getSeq(),
       document: cloneDocument(this.store.getDocument()),
     });
+    this.wsSync?.pushSnapshot(
+      this.store.getSessionId(),
+      this.store.getSeq(),
+      cloneDocument(this.store.getDocument()),
+    );
   }
 
   private async schedulePrefetch() {

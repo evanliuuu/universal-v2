@@ -4,15 +4,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "tsx server/index.ts",
+    "dev:all": "npm run server & npm run dev",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "eval": "tsx eval/run.ts"
   },
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "drizzle-orm": "^0.45.1",
     "fast-json-patch": "^3.3.0",
+    "ws": "^8.18.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "vite": "^6.2.0"

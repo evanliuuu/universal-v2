@@ -3,11 +3,13 @@ import { createSeedState } from "./state/seed";
 import { RuntimeStore } from "./state/store";
 import { UniversalRuntime, tierLabel } from "./runtime/loop";
 import { SessionPersistence } from "./persistence/event-log";
+import { createWsSync } from "./transport/ws-sync";
 
 const eventLogEl = document.getElementById("event-log")!;
 const stateViewEl = document.getElementById("state-view")!;
 const sessionInfoEl = document.getElementById("session-info")!;
 const statsEl = document.getElementById("stats")!;
+const serverEl = document.getElementById("server-info")!;
 const errorEl = document.getElementById("error-banner")!;
 const iframe = document.getElementById("universal-frame") as HTMLIFrameElement;
 const agentModeSelect = document.getElementById("agent-mode") as HTMLSelectElement;
@@ -37,7 +39,16 @@ async function boot() {
     });
   }
 
-  const runtime = new UniversalRuntime(store, iframe, persistence);
+  const wsSync = createWsSync();
+  if (wsSync) {
+    try {
+      await wsSync.connect();
+    } catch {
+      // Optional server — IndexedDB remains local source of truth
+    }
+  }
+
+  const runtime = new UniversalRuntime(store, iframe, persistence, wsSync);
 
   function paint() {
     const log = store.getLog();
@@ -56,6 +67,9 @@ async function boot() {
     sessionInfoEl.textContent = `session ${store.getSessionId().slice(0, 8)}… · seq ${store.getSeq()}`;
     statsEl.textContent =
       `tokens ${budget.tokensUsed}/${budget.tokenLimit} · prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached`;
+    serverEl.textContent = runtime.getWsConnected()
+      ? "server: connected (ws)"
+      : "server: local only (idb)";
 
     const err = runtime.getLastError();
     errorEl.textContent = err ?? "";
@@ -65,6 +79,7 @@ async function boot() {
   runtime.onStatsChange(paint);
   store.subscribe(paint);
   paint();
+  runtime.render();
 
   agentModeSelect.addEventListener("change", () => {
     runtime.setAgentMode(agentModeSelect.value as "mock" | "openrouter");
