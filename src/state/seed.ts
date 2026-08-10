@@ -69,6 +69,7 @@ export function createSeedState(): UniversalState {
     widgets,
     focus: {},
     apps: {},
+    handlers: {},
   };
 }
 
@@ -177,6 +178,22 @@ export function calendarWindowPatches(): {
     path: "/apps/calendar",
     value: { open: true, selectedDate: null, view: "month" },
   },
+  {
+    op: "add" as const,
+    path: "/handlers/focus-calendar",
+    value: {
+      match: { type: "click", targetId: "dock-calendar" },
+      when: "!!state.windows['win-calendar']",
+      statePatch: [
+        {
+          op: "replace",
+          path: "/focus",
+          value: { windowId: winId, widgetId: "dock-calendar" },
+        },
+      ],
+      uiPatch: [],
+    },
+  },
 ];
 
   const uiPatch = statePatch.filter((op) => op.path.startsWith("/widgets"));
@@ -242,6 +259,22 @@ export function notesWindowPatches(): {
       op: "add" as const,
       path: "/apps/notes",
       value: { open: true, body: "" },
+    },
+    {
+      op: "add" as const,
+      path: "/handlers/focus-notes",
+      value: {
+        match: { type: "click", targetId: "dock-notes" },
+        when: "!!state.windows['win-notes']",
+        statePatch: [
+          {
+            op: "replace",
+            path: "/focus",
+            value: { windowId: winId, widgetId: "dock-notes" },
+          },
+        ],
+        uiPatch: [],
+      },
     },
   ];
   const uiPatch = statePatch.filter((op) => op.path.startsWith("/widgets"));
