@@ -1,0 +1,20 @@
+{
+  "name": "prefetch-toggle-off",
+  "description": "Disable speculative prefetch from settings",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "tab-system" },
+      "assert": { "path": "/apps/settings/activeTab", "eq": "system" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "input", "targetId": "prefetch-toggle", "value": false },
+      "assert": { "path": "/meta/budget/prefetchEnabled", "eq": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

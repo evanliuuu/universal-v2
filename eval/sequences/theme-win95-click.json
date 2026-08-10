@@ -1,0 +1,15 @@
+{
+  "name": "theme-win95-click",
+  "description": "Switch theme to Win95 via settings button",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "theme-win95" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "reflex"
+    }
+  ]
+}

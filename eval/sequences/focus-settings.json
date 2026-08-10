@@ -1,0 +1,15 @@
+{
+  "name": "focus-settings",
+  "description": "Re-focus settings when already open",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/focus/windowId", "eq": "win-settings" },
+      "expectTier": "compiled"
+    }
+  ]
+}
