@@ -5,7 +5,6 @@ A rewrite of [snickell/universal](https://github.com/snickell/universal) — `(s
 ## Quick start
 
 ```bash
-cd universal-v2
 npm install
 npm run dev          # client http://localhost:5174
 npm run server       # optional ws + REST server :8787
@@ -72,7 +71,7 @@ CI: `.github/workflows/eval.yml`
 ## Layout
 
 ```text
-universal-v2/
+.
   public/viewport.html
   server/           # WebSocket + Drizzle SQLite + REST
   src/
