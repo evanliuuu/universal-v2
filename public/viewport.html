@@ -26,6 +26,10 @@
           const active = document.activeElement === el;
           if (!active && props.value != null) el.value = props.value;
         }
+        if (widgetType === "checkbox") {
+          const input = el.querySelector("input[type=checkbox]");
+          if (input && props.checked != null) input.checked = !!props.checked;
+        }
         if (widgetType === "list") {
           const items = props.items ?? [];
           el.innerHTML = items
@@ -68,13 +72,32 @@
         document.addEventListener("input", (e) => {
           const el = e.target.closest("[data-widget-id]");
           if (!el) return;
-          const value = el.value ?? el.textContent ?? "";
+          let value = el.value ?? el.textContent ?? "";
+          const checkbox = el.querySelector?.("input[type=checkbox]");
+          if (checkbox) value = checkbox.checked;
           parent.postMessage(
             {
               source: "universal-viewport",
               type: "input",
               targetId: el.dataset.widgetId,
               value,
+              behavior: el.dataset.behavior || "local",
+            },
+            "*",
+          );
+        });
+
+        document.addEventListener("change", (e) => {
+          const input = e.target.closest("input[type=checkbox]");
+          if (!input) return;
+          const el = input.closest("[data-widget-id]");
+          if (!el) return;
+          parent.postMessage(
+            {
+              source: "universal-viewport",
+              type: "input",
+              targetId: el.dataset.widgetId,
+              value: input.checked,
               behavior: el.dataset.behavior || "local",
             },
             "*",
@@ -89,11 +112,13 @@
         if (data.type === "FULL") {
           const styleEl = document.getElementById("uw-styles");
           if (styleEl) styleEl.textContent = data.css ?? "";
+          if (data.theme) document.body.dataset.theme = data.theme;
           root.innerHTML = data.html ?? "";
           return;
         }
 
         if (data.type === "PATCH") {
+          if (data.theme) document.body.dataset.theme = data.theme;
           for (const patch of data.patches ?? []) {
             if (patch.op === "update") {
               const el = root.querySelector(`[data-widget-id="${patch.id}"]`);

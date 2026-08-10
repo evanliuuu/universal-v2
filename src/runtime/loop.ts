@@ -73,6 +73,10 @@ export class UniversalRuntime {
     return this.prefetch.stats();
   }
 
+  getDriftStats() {
+    return viewportBridge.getDriftStats();
+  }
+
   getBudgetStats() {
     return getBudget(this.store.getState());
   }
