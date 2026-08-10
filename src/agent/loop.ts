@@ -4,10 +4,8 @@ import {
   SemanticEvent,
   UniversalState,
 } from "../protocol/types";
-import {
-  calendarWindowPatches,
-  notesWindowPatches,
-} from "../state/seed";
+import { executePlan } from "./executor";
+import { planMock } from "./planner";
 
 export type AgentMode = "mock" | "openrouter";
 
@@ -28,54 +26,18 @@ function mockAgent(
   event: SemanticEvent,
   modelTier: ModelTier,
 ): AgentResponse {
-  if (event.type === "click" && event.targetId === "dock-calendar") {
-    if (state.windows["win-calendar"]) {
-      return {
-        statePatch: [
-          {
-            op: "replace",
-            path: "/focus",
-            value: { windowId: "win-calendar", widgetId: "dock-calendar" },
-          },
-        ],
-        uiPatch: [],
-        rationale: `[${modelTier}] Calendar already open; focus.`,
-      };
-    }
-    return { ...calendarWindowPatches(), rationale: `[${modelTier}] Open calendar app.` };
-  }
-
-  if (event.type === "click" && event.targetId === "dock-notes") {
-    if (state.windows["win-notes"]) {
-      return {
-        statePatch: [
-          {
-            op: "replace",
-            path: "/focus",
-            value: { windowId: "win-notes", widgetId: "dock-notes" },
-          },
-        ],
-        uiPatch: [],
-        rationale: `[${modelTier}] Notes already open; focus.`,
-      };
-    }
-    return { ...notesWindowPatches(), rationale: `[${modelTier}] Open notes app.` };
-  }
-
-  if (event.type === "instruction" && typeof event.value === "string") {
-    const text = event.value.toLowerCase();
-    if (text.includes("calendar")) {
-      return { ...calendarWindowPatches(), rationale: event.value };
-    }
-    if (text.includes("note")) {
-      return { ...notesWindowPatches(), rationale: event.value };
+  if (modelTier === "fast") {
+    const plan = planMock(state, event);
+    if (plan.action === "focus_app") {
+      return executePlan(plan);
     }
   }
 
+  const plan = planMock(state, event);
+  const response = executePlan(plan);
   return {
-    statePatch: [],
-    uiPatch: [],
-    rationale: `[${modelTier}] No mock handler for ${event.type} ${event.targetId ?? ""}`,
+    ...response,
+    rationale: `[planner→executor ${modelTier}] ${response.rationale ?? plan.rationale}`,
   };
 }
 
@@ -102,16 +64,13 @@ async function callOpenRouter(
     throw new Error("Set VITE_OPENROUTER_API_KEY in .env for OpenRouter mode");
   }
 
-  const system = `You are the universal program runtime (${modelTier} tier). Given current app state and a user event, respond with JSON only:
+  const system = `You are the universal program EXECUTOR (${modelTier} tier). Given a plan or event, respond with JSON only:
 { "statePatch": [...RFC6902 ops on state...], "uiPatch": [...ops on ui.widgets...], "rationale": "..." }
-Rules:
-- Emit deltas (JSON Patch), never full HTML.
-- Widget types: box, text, button, input, window.
-- Use /widgets/* paths for UI nodes; /windows/* for window chrome.
-- Prefer minimal patches.
-- ${modelTier === "fast" ? "Routine update only — focus, small prop changes." : "Structural changes allowed — new windows, apps, layouts."}`;
+Widget types: box, text, label, button, input, list, tabs, table, form, window.
+Emit deltas (JSON Patch), never full HTML. Prefer minimal patches.`;
 
-  const user = JSON.stringify({ state, event, modelTier }, null, 2);
+  const plan = planMock(state, event);
+  const user = JSON.stringify({ state, event, modelTier, plan }, null, 2);
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -146,7 +105,6 @@ Rules:
   };
 }
 
-/** Used by prefetch — compute response without side effects. */
 export function prefetchAgent(
   mode: AgentMode,
   state: UniversalState,
