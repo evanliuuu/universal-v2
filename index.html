@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Universal v2 — Day 2</title>
+    <title>Universal v2 — Day 3</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
@@ -21,12 +21,14 @@
           </label>
           <input id="instruct-input" type="text" placeholder="Instruction (big tier)…" />
           <button id="instruct-btn" type="button">Send</button>
+          <button id="replay-btn" type="button" title="Replay event log from IndexedDB">Replay</button>
           <button id="reset-btn" type="button">Reset</button>
           <button id="clear-db-btn" type="button" title="Clear IndexedDB and reset">Clear DB</button>
         </div>
       </header>
       <div class="workspace">
         <aside class="panel">
+          <p id="error-banner" class="error-banner" hidden></p>
           <p id="session-info" class="meta"></p>
           <p id="stats" class="meta"></p>
           <h2>Event log</h2>

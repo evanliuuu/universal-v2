@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-notes",
+  "description": "Natural language instruction opens notes via big tier",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes app" },
+      "assert": { "path": "/windows/win-notes", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

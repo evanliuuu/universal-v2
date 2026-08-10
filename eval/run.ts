@@ -3,10 +3,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAgent } from "../src/agent/loop";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
-import { createDocument, applyStatePatch, applyUiPatch } from "../src/state/patch";
+import { tryCompiled } from "../src/runtime/compiled";
+import { safeApplyPatches } from "../src/state/safe-patch";
+import { createDocument } from "../src/state/patch";
 import { createSeedState } from "../src/state/seed";
 import { tryReflex } from "../src/runtime/reflex";
-import { tryCompiled } from "../src/runtime/compiled";
 import { createSemanticEvent } from "../src/state/store";
 import { ExecutionTier, SemanticEvent } from "../src/protocol/types";
 
@@ -45,16 +46,16 @@ async function dispatchStep(
 ): Promise<{ doc: typeof doc; tier: ExecutionTier }> {
   const reflex = tryReflex(doc, event);
   if (reflex.handled) {
-    let next = applyStatePatch(doc, reflex.statePatch);
-    if (reflex.uiPatch.length) next = applyUiPatch(next, reflex.uiPatch);
-    return { doc: next, tier: "reflex" };
+    const result = safeApplyPatches(doc, reflex.statePatch, reflex.uiPatch);
+    if (!result.ok) throw new Error(result.error);
+    return { doc: result.doc, tier: "reflex" };
   }
 
   const compiled = tryCompiled(doc, event);
   if (compiled.handled) {
-    let next = applyStatePatch(doc, compiled.statePatch);
-    if (compiled.uiPatch.length) next = applyUiPatch(next, compiled.uiPatch);
-    return { doc: next, tier: "compiled" };
+    const result = safeApplyPatches(doc, compiled.statePatch, compiled.uiPatch);
+    if (!result.ok) throw new Error(result.error);
+    return { doc: result.doc, tier: "compiled" };
   }
 
   const modelTier = routeModelTier(event, doc.state);
@@ -64,9 +65,9 @@ async function dispatchStep(
     state: doc.state,
     event,
   });
-  let next = applyStatePatch(doc, response.statePatch);
-  if (response.uiPatch.length) next = applyUiPatch(next, response.uiPatch);
-  return { doc: next, tier: executionTierForModel(modelTier) };
+  const result = safeApplyPatches(doc, response.statePatch, response.uiPatch);
+  if (!result.ok) throw new Error(result.error);
+  return { doc: result.doc, tier: executionTierForModel(modelTier) };
 }
 
 async function runSequence(file: string): Promise<boolean> {

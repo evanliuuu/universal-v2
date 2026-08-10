@@ -1,0 +1,15 @@
+{
+  "name": "close-calendar-window",
+  "description": "Close window via reflex tier removes window state",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "close_window", "value": "win-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

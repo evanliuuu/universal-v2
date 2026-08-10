@@ -1,0 +1,20 @@
+{
+  "name": "calendar-month-nav",
+  "description": "Reflex tier month navigation",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "cal-next" },
+      "assert": { "path": "/widgets/cal-label/props/text", "eq": "September 2026" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "click", "targetId": "cal-prev" },
+      "assert": { "path": "/widgets/cal-label/props/text", "eq": "August 2026" },
+      "expectTier": "reflex"
+    }
+  ]
+}
