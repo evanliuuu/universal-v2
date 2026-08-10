@@ -1,5 +1,6 @@
 import {
   AgentResponse,
+  ModelTier,
   SemanticEvent,
   UniversalState,
 } from "../protocol/types";
@@ -12,69 +13,105 @@ export type AgentMode = "mock" | "openrouter";
 
 export async function runAgent(opts: {
   mode: AgentMode;
+  modelTier: ModelTier;
   state: UniversalState;
   event: SemanticEvent;
 }): Promise<AgentResponse> {
   if (opts.mode === "openrouter") {
-    return callOpenRouter(opts.state, opts.event);
+    return callOpenRouter(opts.state, opts.event, opts.modelTier);
   }
-  return mockAgent(opts.state, opts.event);
+  return mockAgent(opts.state, opts.event, opts.modelTier);
 }
 
-function mockAgent(state: UniversalState, event: SemanticEvent): AgentResponse {
+function mockAgent(
+  state: UniversalState,
+  event: SemanticEvent,
+  modelTier: ModelTier,
+): AgentResponse {
   if (event.type === "click" && event.targetId === "dock-calendar") {
     if (state.windows["win-calendar"]) {
       return {
-        statePatch: [{ op: "replace", path: "/focus", value: { windowId: "win-calendar" } }],
+        statePatch: [
+          {
+            op: "replace",
+            path: "/focus",
+            value: { windowId: "win-calendar", widgetId: "dock-calendar" },
+          },
+        ],
         uiPatch: [],
-        rationale: "Calendar already open; focus it.",
+        rationale: `[${modelTier}] Calendar already open; focus.`,
       };
     }
-    return { ...calendarWindowPatches(), rationale: "Open calendar app." };
+    return { ...calendarWindowPatches(), rationale: `[${modelTier}] Open calendar app.` };
   }
 
   if (event.type === "click" && event.targetId === "dock-notes") {
     if (state.windows["win-notes"]) {
       return {
-        statePatch: [{ op: "replace", path: "/focus", value: { windowId: "win-notes" } }],
+        statePatch: [
+          {
+            op: "replace",
+            path: "/focus",
+            value: { windowId: "win-notes", widgetId: "dock-notes" },
+          },
+        ],
         uiPatch: [],
-        rationale: "Notes already open; focus it.",
+        rationale: `[${modelTier}] Notes already open; focus.`,
       };
     }
-    return { ...notesWindowPatches(), rationale: "Open notes app." };
+    return { ...notesWindowPatches(), rationale: `[${modelTier}] Open notes app.` };
   }
 
   if (event.type === "instruction" && typeof event.value === "string") {
     const text = event.value.toLowerCase();
-    if (text.includes("calendar")) return { ...calendarWindowPatches(), rationale: event.value };
-    if (text.includes("note")) return { ...notesWindowPatches(), rationale: event.value };
+    if (text.includes("calendar")) {
+      return { ...calendarWindowPatches(), rationale: event.value };
+    }
+    if (text.includes("note")) {
+      return { ...notesWindowPatches(), rationale: event.value };
+    }
   }
 
   return {
     statePatch: [],
     uiPatch: [],
-    rationale: `No mock handler for ${event.type} ${event.targetId ?? ""}`,
+    rationale: `[${modelTier}] No mock handler for ${event.type} ${event.targetId ?? ""}`,
   };
+}
+
+function modelForTier(tier: ModelTier): string {
+  if (tier === "fast") {
+    return (
+      (import.meta.env.VITE_OPENROUTER_FAST_MODEL as string | undefined) ??
+      "google/gemini-2.5-flash"
+    );
+  }
+  return (
+    (import.meta.env.VITE_OPENROUTER_BIG_MODEL as string | undefined) ??
+    "anthropic/claude-sonnet-4"
+  );
 }
 
 async function callOpenRouter(
   state: UniversalState,
   event: SemanticEvent,
+  modelTier: ModelTier,
 ): Promise<AgentResponse> {
   const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined;
   if (!apiKey) {
     throw new Error("Set VITE_OPENROUTER_API_KEY in .env for OpenRouter mode");
   }
 
-  const system = `You are the universal program runtime. Given current app state and a user event, respond with JSON only:
+  const system = `You are the universal program runtime (${modelTier} tier). Given current app state and a user event, respond with JSON only:
 { "statePatch": [...RFC6902 ops on state...], "uiPatch": [...ops on ui.widgets...], "rationale": "..." }
 Rules:
 - Emit deltas (JSON Patch), never full HTML.
 - Widget types: box, text, button, input, window.
 - Use /widgets/* paths for UI nodes; /windows/* for window chrome.
-- Prefer minimal patches.`;
+- Prefer minimal patches.
+- ${modelTier === "fast" ? "Routine update only — focus, small prop changes." : "Structural changes allowed — new windows, apps, layouts."}`;
 
-  const user = JSON.stringify({ state, event }, null, 2);
+  const user = JSON.stringify({ state, event, modelTier }, null, 2);
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -85,7 +122,7 @@ Rules:
       "X-Title": "universal-v2",
     },
     body: JSON.stringify({
-      model: "anthropic/claude-sonnet-4",
+      model: modelForTier(modelTier),
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -107,4 +144,16 @@ Rules:
     uiPatch: parsed.uiPatch ?? [],
     rationale: parsed.rationale,
   };
+}
+
+/** Used by prefetch — compute response without side effects. */
+export function prefetchAgent(
+  mode: AgentMode,
+  state: UniversalState,
+  event: SemanticEvent,
+): Promise<AgentResponse> {
+  const modelTier = state.windows[`win-${event.targetId?.replace("dock-", "") ?? ""}`]
+    ? "fast"
+    : "big";
+  return runAgent({ mode, modelTier, state, event });
 }
