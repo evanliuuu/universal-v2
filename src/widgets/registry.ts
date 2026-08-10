@@ -83,6 +83,43 @@ registerWidget("list", (node) => {
   return `<ul ${dataAttrs(node)} class="${cls(node)}">${lis}</ul>`;
 });
 
+registerWidget("tabs", (node, ctx, renderChild) => {
+  const tabs = (node.props.tabs as Array<{ id: string; label: string }>) ?? [];
+  const active = String(node.props.activeTab ?? tabs[0]?.id ?? "");
+  const tabBar = tabs
+    .map(
+      (t) =>
+        `<button type="button" class="uw-tab-btn${t.id === active ? " active" : ""}" data-widget-id="tab-${t.id}" data-widget-type="button" data-behavior="local">${escapeHtml(t.label)}</button>`,
+    )
+    .join("");
+  const panels = (node.children ?? [])
+    .map((childId) => {
+      const suffix = childId.includes("-") ? childId.split("-").slice(-1)[0] : childId;
+      const hidden = suffix !== active ? "hidden-tab-panel" : "";
+      return `<div class="uw-tab-panel ${hidden}">${renderChild(childId)}</div>`;
+    })
+    .join("");
+  return `<div ${dataAttrs(node)} class="${cls(node, "uw-tabs")}"><div class="uw-tab-bar">${tabBar}</div><div class="uw-tab-panels">${panels}</div></div>`;
+});
+
+registerWidget("table", (node) => {
+  const columns = (node.props.columns as string[]) ?? [];
+  const rows = (node.props.rows as string[][]) ?? [];
+  const head = columns.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
+  const body = rows
+    .map(
+      (row) =>
+        `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell))}</td>`).join("")}</tr>`,
+    )
+    .join("");
+  return `<table ${dataAttrs(node)} class="${cls(node)}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+});
+
+registerWidget("form", (node, _ctx, renderChild) => {
+  const kids = (node.children ?? []).map(renderChild).join("");
+  return `<form ${dataAttrs(node)} class="${cls(node)}" onsubmit="return false">${kids}</form>`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];

@@ -103,5 +103,40 @@ export function tryReflex(
     };
   }
 
+  if (event.type === "click" && targetId?.startsWith("tab-")) {
+    const tab = targetId.replace("tab-", "");
+    const generalClass =
+      tab === "general"
+        ? "settings-form tab-panel-general"
+        : "settings-form tab-panel-general hidden-tab-panel";
+    const systemClass =
+      tab === "system"
+        ? "settings-panel tab-panel-system"
+        : "settings-panel tab-panel-system hidden-tab-panel";
+    return {
+      handled: true,
+      statePatch: [
+        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
+        { op: "replace", path: "/apps/settings/activeTab", value: tab },
+        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
+        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
+      ],
+      uiPatch: [
+        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
+        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
+        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
+      ],
+    };
+  }
+
+  if (event.type === "click" && targetId?.startsWith("theme-")) {
+    const theme = targetId.replace("theme-", "");
+    return {
+      handled: true,
+      statePatch: [{ op: "replace", path: "/meta/theme", value: theme }],
+      uiPatch: [],
+    };
+  }
+
   return empty;
 }

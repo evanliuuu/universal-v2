@@ -47,6 +47,9 @@ export const WidgetTypeSchema = z.enum([
   "button",
   "input",
   "list",
+  "tabs",
+  "table",
+  "form",
   "window",
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;

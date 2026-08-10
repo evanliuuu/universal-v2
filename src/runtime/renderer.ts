@@ -28,6 +28,18 @@ const VIEWPORT_CSS = `
   .uw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .uw-list-item { padding: 8px 10px; border-radius: 6px; background: #f5f5f7; border: 1px solid #e5e5ea; }
   .uw-label { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+  .uw-tabs { display: flex; flex-direction: column; gap: 12px; }
+  .uw-tab-bar { display: flex; gap: 6px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+  .uw-tab-btn { border: none; background: transparent; padding: 6px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+  .uw-tab-btn.active { background: #007aff; color: white; }
+  .uw-tab-panel.hidden-tab-panel { display: none; }
+  .uw-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .uw-table th, .uw-table td { border: 1px solid #e0e0e0; padding: 8px 10px; text-align: left; }
+  .uw-table th { background: #f5f5f7; }
+  .uw-form { display: flex; flex-direction: column; gap: 10px; }
+  .uw-form .theme-btn { align-self: flex-start; }
+  body[data-theme="dark"] { filter: brightness(0.75) saturate(0.9); }
+  body[data-theme="win95"] { font-family: "MS Sans Serif", Tahoma, sans-serif; }
 `;
 
 export { VIEWPORT_CSS };
