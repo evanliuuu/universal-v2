@@ -60,7 +60,7 @@ OpenRouter mode uses a **live planner** (`planLive`) that returns structured pla
 npm run eval   # 13 sequences
 ```
 
-CI: `.github/workflows/universal-v2-eval.yml`
+CI: `.github/workflows/eval.yml`
 
 ## Server REST
 
