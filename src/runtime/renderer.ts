@@ -1,5 +1,6 @@
 import { renderTree } from "../widgets/registry";
 import { UniversalDocument } from "../state/patch";
+import { viewportBridge } from "./viewport-bridge";
 
 const VIEWPORT_CSS = `
   * { box-sizing: border-box; }
@@ -24,7 +25,12 @@ const VIEWPORT_CSS = `
   .uw-day-cell { border: 1px solid #e0e0e0; background: #fafafa; border-radius: 6px; padding: 10px; cursor: pointer; }
   .uw-day-cell.selected { background: #007aff; color: white; border-color: #007aff; }
   .uw-input, textarea.uw-input { width: 100%; min-height: 180px; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font: inherit; resize: vertical; }
+  .uw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .uw-list-item { padding: 8px 10px; border-radius: 6px; background: #f5f5f7; border: 1px solid #e5e5ea; }
+  .uw-label { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
 `;
+
+export { VIEWPORT_CSS };
 
 export function buildViewportHtml(doc: UniversalDocument): string {
   const body = renderTree({
@@ -69,6 +75,5 @@ export function buildViewportHtml(doc: UniversalDocument): string {
 }
 
 export function mountViewport(iframe: HTMLIFrameElement, doc: UniversalDocument) {
-  const html = buildViewportHtml(doc);
-  iframe.srcdoc = html;
+  viewportBridge.mount(iframe, doc);
 }

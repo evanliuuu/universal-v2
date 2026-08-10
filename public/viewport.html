@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style id="uw-styles"></style>
+  </head>
+  <body>
+    <div id="uw-root"></div>
+    <script>
+      const root = document.getElementById("uw-root");
+
+      function applyUpdate(el, props, widgetType) {
+        if (props.className != null) {
+          el.className = ["uw", `uw-${widgetType}`, props.className]
+            .filter(Boolean)
+            .join(" ");
+        }
+        if (widgetType === "text" || widgetType === "label") {
+          el.textContent = props.text ?? "";
+        }
+        if (widgetType === "button") {
+          el.textContent = props.label ?? "Button";
+          if (props.title != null) el.title = props.title;
+        }
+        if (widgetType === "input") {
+          const active = document.activeElement === el;
+          if (!active && props.value != null) el.value = props.value;
+        }
+        if (widgetType === "list") {
+          const items = props.items ?? [];
+          el.innerHTML = items
+            .map(
+              (item) =>
+                `<li class="uw-list-item" data-item-id="${item.id ?? ""}">${item.label ?? item}</li>`,
+            )
+            .join("");
+        }
+      }
+
+      function bindEvents() {
+        document.addEventListener("click", (e) => {
+          const close = e.target.closest('[data-action="close-window"]');
+          if (close) {
+            parent.postMessage(
+              {
+                source: "universal-viewport",
+                type: "close_window",
+                windowId: close.dataset.windowId,
+              },
+              "*",
+            );
+            return;
+          }
+          const el = e.target.closest("[data-widget-id]");
+          if (!el) return;
+          parent.postMessage(
+            {
+              source: "universal-viewport",
+              type: "click",
+              targetId: el.dataset.widgetId,
+              widgetType: el.dataset.widgetType,
+              behavior: el.dataset.behavior || "agent",
+            },
+            "*",
+          );
+        });
+
+        document.addEventListener("input", (e) => {
+          const el = e.target.closest("[data-widget-id]");
+          if (!el) return;
+          const value = el.value ?? el.textContent ?? "";
+          parent.postMessage(
+            {
+              source: "universal-viewport",
+              type: "input",
+              targetId: el.dataset.widgetId,
+              value,
+              behavior: el.dataset.behavior || "local",
+            },
+            "*",
+          );
+        });
+      }
+
+      window.addEventListener("message", (e) => {
+        const data = e.data;
+        if (!data || data.target !== "universal-viewport") return;
+
+        if (data.type === "FULL") {
+          const styleEl = document.getElementById("uw-styles");
+          if (styleEl) styleEl.textContent = data.css ?? "";
+          root.innerHTML = data.html ?? "";
+          return;
+        }
+
+        if (data.type === "PATCH") {
+          for (const patch of data.patches ?? []) {
+            if (patch.op === "update") {
+              const el = root.querySelector(`[data-widget-id="${patch.id}"]`);
+              if (!el) continue;
+              applyUpdate(el, patch.props, el.dataset.widgetType);
+            } else if (patch.op === "replace") {
+              const el = root.querySelector(`[data-widget-id="${patch.id}"]`);
+              if (el) el.outerHTML = patch.html;
+            } else if (patch.op === "append") {
+              const parent = root.querySelector(`[data-widget-id="${patch.parentId}"]`);
+              if (parent) parent.insertAdjacentHTML("beforeend", patch.html);
+            } else if (patch.op === "remove") {
+              root.querySelector(`[data-widget-id="${patch.id}"]`)?.remove();
+            }
+          }
+        }
+      });
+
+      bindEvents();
+      parent.postMessage({ source: "universal-viewport", type: "ready" }, "*");
+    </script>
+  </body>
+</html>
