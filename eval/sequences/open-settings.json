@@ -1,0 +1,11 @@
+{
+  "name": "open-settings",
+  "description": "Open settings app from dock",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "settings-tab-switch",
+  "description": "Settings tab navigation via reflex tier",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "tab-system" },
+      "assert": { "path": "/widgets/settings-tabs/props/activeTab", "eq": "system" },
+      "expectTier": "reflex"
+    }
+  ]
+}

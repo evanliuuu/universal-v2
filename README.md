@@ -1,78 +1,79 @@
 # Universal v2
 
-A rewrite of [snickell/universal](https://github.com/snickell/universal) using the 2026 architecture:
-
-```text
-(state, event) → reflex | compiled | prefetch | agent(fast|big) → patches → incremental render
-```
+A rewrite of [snickell/universal](https://github.com/snickell/universal) — `(state, event) → patches → incremental render`.
 
 ## Quick start
 
 ```bash
 cd universal-v2
 npm install
-npm run dev
+npm run dev          # client http://localhost:5174
+npm run server       # optional ws server :8787
 ```
 
-Open http://localhost:5174
+With server sync, copy `.env.example` → `.env` (sets `VITE_WS_URL=ws://localhost:5174/ws` proxied to `:8787`).
 
 ## Architecture
 
-| Layer | What it does |
+```text
+Event → reflex | compiled | prefetch | planner→executor (fast/big)
+      → validated JSON Patch → widget diff → sandboxed iframe
+      → IndexedDB + optional WebSocket/Drizzle server
+```
+
+| Layer | Status |
 |---|---|
-| **State** | External JSON document (never HTML in context) |
-| **Patches** | RFC 6902 deltas, validated before apply |
-| **Tiers** | reflex → compiled → prefetch → agent-fast/big |
-| **Render** | Persistent iframe + widget-level DOM patches |
-| **Persistence** | IndexedDB event log + keyframe snapshots |
-| **Replay** | Re-apply event log without model calls |
+| Tiered execution | ✅ |
+| Planner / executor split | ✅ Day 4 |
+| Incremental DOM patches | ✅ |
+| Token budget + prefetch policy | ✅ |
+| Session replay | ✅ |
+| Widget toolkit (10 types) | ✅ |
+| WebSocket + SQLite server | ✅ Day 4 |
+| Eval CI (10 sequences) | ✅ |
 
-## Try it
+## Widgets
 
-1. Click **📅** — opens Calendar (`agent-big`)
-2. Click **📅** again — focus via `compiled` handler
-3. Type in Notes — `reflex` (incremental DOM update, focus preserved)
-4. Click **Replay** — replays IndexedDB event log
-5. Watch token budget in the stats bar
+`box` · `text` · `label` · `button` · `input` · `list` · `tabs` · `table` · `form` · `window`
+
+## Apps (demo)
+
+- **Calendar** — month nav (reflex)
+- **Notes** — live typing (reflex)
+- **Settings** — tabs, theme buttons, budget table
+
+## NL instructions (mock planner)
+
+- `open calendar` / `open notes` / `open settings`
+- `switch to dark theme` / `win95 theme`
+- `double the token budget`
 
 ## Eval
 
 ```bash
-npm run eval
+npm run eval   # 10 sequences
 ```
 
-Six sequences in `eval/sequences/` covering reflex, compiled, agent, and close-window flows.
+CI: `.github/workflows/universal-v2-eval.yml`
 
-## OpenRouter
-
-```bash
-cp .env.example .env
-```
-
-## Project layout
+## Layout
 
 ```text
 universal-v2/
-  public/viewport.html       # persistent sandbox iframe boot page
+  public/viewport.html
+  server/           # WebSocket + Drizzle SQLite
   src/
-    protocol/                # types + AG-UI messages
-    state/                   # patch, diff, safe-patch, seed
-    persistence/             # IndexedDB
-    widgets/                 # box, text, label, button, input, list, window
-    runtime/                 # loop, reflex, compiled, replay, viewport-bridge
-    agent/                   # router, prefetch, budget, mock/OpenRouter
-  eval/
+    agent/          # planner, executor, router, budget, prefetch
+    transport/      # ws-sync client
+    runtime/        # loop, reflex, compiled, replay, viewport-bridge
+    state/          # patch, safe-patch, widget-diff, seed
+    widgets/
+  eval/sequences/
 ```
 
-## Roadmap status
+## Roadmap
 
-| Milestone | Status |
-|---|---|
-| Architecture proof | ✅ |
-| Tiered execution | ✅ |
-| Client persistence | ✅ |
-| Incremental render | ✅ Day 3 |
-| Token budget | ✅ Day 3 |
-| Session replay | ✅ Day 3 |
-| Server (DO/WebSocket/Drizzle) | 🔜 |
-| 20+ widget toolkit | 🔜 |
+- Cloudflare Durable Objects deployment
+- 20+ widgets, theme packs
+- Planner model separate from executor (live LLM)
+- Drift detection + STATE_SNAPSHOT on mismatch

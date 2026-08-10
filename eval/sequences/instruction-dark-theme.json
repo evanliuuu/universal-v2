@@ -1,0 +1,11 @@
+{
+  "name": "instruction-dark-theme",
+  "description": "NL instruction sets dark theme via planner",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

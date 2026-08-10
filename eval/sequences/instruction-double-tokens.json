@@ -1,0 +1,11 @@
+{
+  "name": "instruction-double-tokens",
+  "description": "NL instruction doubles token budget",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "double the token budget" },
+      "assert": { "path": "/meta/budget/tokenLimit", "eq": 100000 },
+      "expectTier": "agent-big"
+    }
+  ]
+}
