@@ -4,15 +4,60 @@ import {
   appendServerEvent,
   getLatestSession,
   getSessionEvents,
+  listSessions,
   saveSessionSnapshot,
   StoredEvent,
 } from "./store.js";
 
 const PORT = Number(process.env.UNIVERSAL_SERVER_PORT ?? 8787);
 
-const httpServer = createServer((_req, res) => {
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ ok: true, service: "universal-v2" }));
+const httpServer = createServer(async (req, res) => {
+  const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
+
+  try {
+    if (url.pathname === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, service: "universal-v2", port: PORT }));
+      return;
+    }
+
+    if (url.pathname === "/sessions" && req.method === "GET") {
+      const sessions = await listSessions();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sessions }));
+      return;
+    }
+
+    const eventsMatch = url.pathname.match(/^\/sessions\/([^/]+)\/events$/);
+    if (eventsMatch && req.method === "GET") {
+      const events = await getSessionEvents(eventsMatch[1]);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sessionId: eventsMatch[1], events }));
+      return;
+    }
+
+    if (url.pathname === "/") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          ok: true,
+          service: "universal-v2",
+          routes: ["/health", "/sessions", "/sessions/:id/events", "/ws"],
+        }),
+      );
+      return;
+    }
+
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "not found" }));
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }
 });
 
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });

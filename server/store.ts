@@ -68,3 +68,14 @@ export async function getLatestSession() {
     updatedAt: row.updatedAt,
   };
 }
+
+export async function listSessions() {
+  const rows = db.select().from(sessions).all();
+  rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return rows.map((row) => ({
+    id: row.id,
+    seq: row.seq,
+    updatedAt: row.updatedAt,
+    createdAt: row.createdAt,
+  }));
+}
