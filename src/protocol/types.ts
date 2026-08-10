@@ -1,8 +1,44 @@
 import { z } from "zod";
 
+export const JsonPatchOpSchema = z.object({
+  op: z.enum(["add", "remove", "replace", "move", "copy", "test"]),
+  path: z.string(),
+  value: z.unknown().optional(),
+  from: z.string().optional(),
+});
+
+export type JsonPatchOp = z.infer<typeof JsonPatchOpSchema>;
+
 /** How events for this widget are handled. */
-export const BehaviorSchema = z.enum(["local", "agent"]);
+export const BehaviorSchema = z.enum(["local", "compiled", "agent"]);
 export type Behavior = z.infer<typeof BehaviorSchema>;
+
+export const CompiledHandlerSchema = z.object({
+  match: z.object({
+    type: z.string(),
+    targetId: z.string().optional(),
+  }),
+  /** JS expression evaluated as `new Function('state', 'return (' + when + ')')` */
+  when: z.string().optional(),
+  statePatch: z.array(JsonPatchOpSchema).optional(),
+  uiPatch: z.array(JsonPatchOpSchema).optional(),
+  /** JS body: `(state, event) => ({ statePatch, uiPatch })` */
+  source: z.string().optional(),
+});
+
+export type CompiledHandler = z.infer<typeof CompiledHandlerSchema>;
+
+export const ModelTierSchema = z.enum(["fast", "big"]);
+export type ModelTier = z.infer<typeof ModelTierSchema>;
+
+export const ExecutionTierSchema = z.enum([
+  "reflex",
+  "compiled",
+  "prefetch",
+  "agent-fast",
+  "agent-big",
+]);
+export type ExecutionTier = z.infer<typeof ExecutionTierSchema>;
 
 export const WidgetTypeSchema = z.enum([
   "box",
@@ -63,6 +99,7 @@ export const UniversalStateSchema = z.object({
     })
     .optional(),
   apps: z.record(z.unknown()).default({}),
+  handlers: z.record(CompiledHandlerSchema).default({}),
 });
 
 export type UniversalState = z.infer<typeof UniversalStateSchema>;
@@ -83,15 +120,6 @@ export const SemanticEventSchema = z.object({
 
 export type SemanticEvent = z.infer<typeof SemanticEventSchema>;
 
-export const JsonPatchOpSchema = z.object({
-  op: z.enum(["add", "remove", "replace", "move", "copy", "test"]),
-  path: z.string(),
-  value: z.unknown().optional(),
-  from: z.string().optional(),
-});
-
-export type JsonPatchOp = z.infer<typeof JsonPatchOpSchema>;
-
 export const AgentResponseSchema = z.object({
   statePatch: z.array(JsonPatchOpSchema).default([]),
   uiPatch: z.array(JsonPatchOpSchema).default([]),
@@ -109,8 +137,11 @@ export type AppliedPatch = {
 
 export type EventLogEntry = {
   id: number;
+  seq: number;
   event: SemanticEvent;
-  tier: "reflex" | "compiled" | "agent";
+  tier: ExecutionTier;
+  modelTier?: ModelTier;
+  prefetchHit?: boolean;
   patches: AppliedPatch[];
   latencyMs?: number;
 };
