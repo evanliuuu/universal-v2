@@ -63,7 +63,17 @@ export function createSeedState(): UniversalState {
   };
 
   return {
-    meta: { theme: "cupertino", locale: "en", version: 1 },
+    meta: {
+      theme: "cupertino",
+      locale: "en",
+      version: 2,
+      budget: {
+        tokensUsed: 0,
+        tokenLimit: 50_000,
+        prefetchEnabled: true,
+        maxPrefetchPending: 4,
+      },
+    },
     desktop: { rootId: "screen", dock: ["dock-calendar", "dock-notes"] },
     windows: {},
     widgets,

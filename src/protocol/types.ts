@@ -43,8 +43,10 @@ export type ExecutionTier = z.infer<typeof ExecutionTierSchema>;
 export const WidgetTypeSchema = z.enum([
   "box",
   "text",
+  "label",
   "button",
   "input",
+  "list",
   "window",
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;
@@ -85,6 +87,14 @@ export const UniversalStateSchema = z.object({
     theme: z.string().default("cupertino"),
     locale: z.string().default("en"),
     version: z.number().default(1),
+    budget: z
+      .object({
+        tokensUsed: z.number().default(0),
+        tokenLimit: z.number().default(50_000),
+        prefetchEnabled: z.boolean().default(true),
+        maxPrefetchPending: z.number().default(4),
+      })
+      .default({}),
   }),
   desktop: z.object({
     rootId: z.string(),
