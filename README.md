@@ -1,97 +1,34 @@
 # Universal v2
 
-A rewrite of [snickell/universal](https://github.com/snickell/universal) — `(state, event) → patches → incremental render`.
+Rewrite of [snickell/universal](https://github.com/snickell/universal).
 
-## Quick start
+An AI drives a little desktop UI through JSON state + patches instead of dumping HTML into the chat.
+
+```text
+event → reflex / compiled / agent → JSON Patch → sandboxed viewport
+```
+
+## Run
 
 ```bash
 npm install
-npm run dev          # client http://localhost:5174
-npm run server       # optional ws + REST server :8787
+npm run dev       # http://localhost:5174
+npm run server    # optional, :8787
+npm run eval
 ```
 
-With server sync, copy `.env.example` → `.env` (sets `VITE_WS_URL=ws://localhost:5174/ws` proxied to `:8787`).
+Copy `.env.example` → `.env` if you want OpenRouter or websocket sync.
 
-## Architecture
+## What's in here
 
-```text
-Event → reflex | compiled | prefetch | planner→executor (fast/big)
-      → validated JSON Patch → widget diff → sandboxed iframe
-      → IndexedDB + optional WebSocket/Drizzle server
-```
+Demo apps: calendar, notes, settings (themes, token budget, prefetch).
 
-| Layer | Status |
-|---|---|
-| Tiered execution | ✅ |
-| Planner / executor split | ✅ |
-| Live OpenRouter planner (plan only) | ✅ Day 5 |
-| Live OpenRouter executor (`open_app` / `set_theme`) | ✅ Phase 6 |
-| App SDK sketch (`defineApp` registry) | ✅ Phase 6 |
-| Theme engine (cupertino / dark / win95) | ✅ Day 5 |
-| Drift detection + full re-render | ✅ Day 5 |
-| Session export / import | ✅ Day 5 |
-| Incremental DOM patches | ✅ |
-| Token budget + prefetch policy | ✅ |
-| Session replay | ✅ |
-| Widget toolkit (11 types) | ✅ |
-| WebSocket + SQLite server | ✅ |
-| Eval CI (16 sequences) | ✅ |
+Agent path is planner → executor. With an OpenRouter key it can plan and emit patches for opening apps / changing theme; otherwise it falls back to local templates.
 
-## Widgets
+Sessions persist in IndexedDB (replay + export/import). Optional Node server syncs over websocket + SQLite.
 
-`box` · `text` · `label` · `button` · `input` · `list` · `tabs` · `table` · `form` · `checkbox` · `window`
+## Notes
 
-## Apps (demo)
-
-- **Calendar** — month nav (reflex)
-- **Notes** — live typing (reflex)
-- **Settings** — tabs, theme buttons, budget table, prefetch toggle
-
-## NL instructions (mock planner)
-
-- `open calendar` / `open notes` / `open settings`
-- `switch to dark theme` / `win95 theme`
-- `double the token budget`
-
-OpenRouter mode uses a **live planner** (`planLive`) plus a **live executor** (`executeLive`) for `open_app` / `set_theme`. Invalid or missing model patches fall back to local templates. Eval covers the live path with fixture payloads (`agentMode: "live-fixture"`).
-
-## Eval
-
-```bash
-npm run eval   # 16 sequences
-```
-
-CI: `.github/workflows/eval.yml`
-
-## Server REST
-
-- `GET /health` — liveness
-- `GET /sessions` — list stored sessions
-- `GET /sessions/:id/events` — event log for a session
-- `WS /ws` — snapshot + event sync
-
-## Layout
-
-```text
-.
-  public/viewport.html
-  server/           # WebSocket + Drizzle SQLite + REST
-  src/
-    agent/          # planner, planner-live, executor, executor-live, router, budget, prefetch
-    apps/           # defineApp registry (calendar, notes, settings)
-    themes/         # CSS variable theme packs
-    transport/      # ws-sync client
-    runtime/        # loop, reflex, compiled, replay, viewport-bridge
-    state/          # patch, safe-patch, widget-diff, drift, seed
-    persistence/    # event-log, export
-    widgets/
-  eval/sequences/
-```
-
-## Roadmap
-
-- Expand live executor beyond `open_app` / `set_theme`
-- Full AG-UI WebSocket transport
-- Cloudflare Durable Objects deployment
-- 20+ widgets, more theme packs
-- App SDK: seed desktop from registry (no hardcoded dock widgets)
+- Widgets live under `src/widgets/`
+- Apps register via `src/apps/`
+- Eval sequences are in `eval/sequences/`
