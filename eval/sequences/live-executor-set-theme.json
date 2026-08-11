@@ -1,0 +1,19 @@
+{
+  "name": "live-executor-set-theme",
+  "description": "Model-emitted theme patch applied via live executor path",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/meta/theme", "value": "dark" }
+        ],
+        "uiPatch": [],
+        "rationale": "Setting dark theme from model patches."
+      },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

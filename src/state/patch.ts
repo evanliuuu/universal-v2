@@ -1,11 +1,14 @@
-import { applyPatch, type Operation } from "fast-json-patch";
+import jsonpatch from "fast-json-patch";
+import type { Operation } from "fast-json-patch";
 import {
   AgentResponseSchema,
   JsonPatchOp,
   UniversalState,
   UniversalStateSchema,
   WidgetNode,
-} from "./types";
+} from "../protocol/types";
+
+const { applyPatch } = jsonpatch;
 
 export type UniversalDocument = {
   state: UniversalState;

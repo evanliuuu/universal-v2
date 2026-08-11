@@ -1,22 +1,6 @@
+import { getApp } from "../apps/registry";
 import { AgentResponse, UniversalState } from "../protocol/types";
 import { AgentPlan } from "./planner";
-import {
-  calendarWindowPatches,
-  notesWindowPatches,
-  settingsWindowPatches,
-} from "../state/seed";
-
-const FOCUS: Record<string, string> = {
-  calendar: "win-calendar",
-  notes: "win-notes",
-  settings: "win-settings",
-};
-
-const DOCK: Record<string, string> = {
-  calendar: "dock-calendar",
-  notes: "dock-notes",
-  settings: "dock-settings",
-};
 
 /** Executor: turn a plan into validated patch deltas. */
 export function executePlan(
@@ -25,27 +9,21 @@ export function executePlan(
 ): AgentResponse {
   switch (plan.action) {
     case "open_app": {
-      if (plan.app === "calendar") {
-        return { ...calendarWindowPatches(), rationale: plan.rationale };
-      }
-      if (plan.app === "notes") {
-        return { ...notesWindowPatches(), rationale: plan.rationale };
-      }
-      if (plan.app === "settings") {
-        return { ...settingsWindowPatches(state), rationale: plan.rationale };
-      }
-      break;
+      if (!plan.app) break;
+      const app = getApp(plan.app);
+      if (!app) break;
+      return { ...app.open(state), rationale: plan.rationale };
     }
     case "focus_app": {
-      const winId = plan.app ? FOCUS[plan.app] : undefined;
-      const dockId = plan.app ? DOCK[plan.app] : undefined;
-      if (!winId) break;
+      if (!plan.app) break;
+      const app = getApp(plan.app);
+      if (!app) break;
       return {
         statePatch: [
           {
             op: "replace",
             path: "/focus",
-            value: { windowId: winId, widgetId: dockId },
+            value: { windowId: app.windowId, widgetId: app.dockId },
           },
         ],
         uiPatch: [],

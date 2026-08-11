@@ -1,0 +1,19 @@
+{
+  "name": "live-executor-fallback-invalid",
+  "description": "Invalid model patches fall back to local template executor",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/meta/theme/nested/missing", "value": "dark" }
+        ],
+        "uiPatch": [],
+        "rationale": "Intentionally invalid path."
+      },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

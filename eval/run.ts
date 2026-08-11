@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runAgent } from "../src/agent/loop";
+import { AgentMode, runAgent } from "../src/agent/loop";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
 import { tryCompiled } from "../src/runtime/compiled";
 import { safeApplyPatches } from "../src/state/safe-patch";
@@ -23,10 +23,13 @@ type EvalStep = {
   event: Omit<SemanticEvent, "at">;
   assert: AssertStep;
   expectTier?: ExecutionTier;
+  /** Canned model patch payload for agentMode=live-fixture */
+  modelPatches?: unknown;
 };
 
 type EvalSequence = {
   name: string;
+  agentMode?: AgentMode;
   steps: EvalStep[];
 };
 
@@ -43,6 +46,8 @@ function getAtPath(obj: unknown, path: string): unknown {
 async function dispatchStep(
   doc: ReturnType<typeof createDocument>,
   event: SemanticEvent,
+  agentMode: AgentMode,
+  modelPatches?: unknown,
 ): Promise<{ doc: typeof doc; tier: ExecutionTier }> {
   const reflex = tryReflex(doc, event);
   if (reflex.handled) {
@@ -60,10 +65,11 @@ async function dispatchStep(
 
   const modelTier = routeModelTier(event, doc.state);
   const response = await runAgent({
-    mode: "mock",
+    mode: agentMode,
     modelTier,
     state: doc.state,
     event,
+    modelPatches,
   });
   const result = safeApplyPatches(doc, response.statePatch, response.uiPatch);
   if (!result.ok) throw new Error(result.error);
@@ -74,18 +80,25 @@ async function runSequence(file: string): Promise<boolean> {
   const seq: EvalSequence = JSON.parse(readFileSync(file, "utf-8"));
   let doc = createDocument(createSeedState());
   let passed = 0;
+  const agentMode = seq.agentMode ?? "mock";
 
-  console.log(`\n▶ ${seq.name}`);
+  console.log(`\n▶ ${seq.name}${agentMode !== "mock" ? ` [${agentMode}]` : ""}`);
 
   for (const [i, step] of seq.steps.entries()) {
     const event = createSemanticEvent(step.event);
-    const { doc: next, tier } = await dispatchStep(doc, event);
+    const { doc: next, tier } = await dispatchStep(
+      doc,
+      event,
+      agentMode,
+      step.modelPatches,
+    );
     doc = next;
 
     const actual = getAtPath(doc.state, step.assert.path);
     let ok = false;
-    if (step.assert.exists) ok = actual !== undefined;
-    else if ("eq" in step.assert) {
+    if ("exists" in step.assert) {
+      ok = step.assert.exists ? actual !== undefined : actual === undefined;
+    } else if ("eq" in step.assert) {
       ok = JSON.stringify(actual) === JSON.stringify(step.assert.eq);
     }
 

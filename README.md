@@ -25,6 +25,8 @@ Event → reflex | compiled | prefetch | planner→executor (fast/big)
 | Tiered execution | ✅ |
 | Planner / executor split | ✅ |
 | Live OpenRouter planner (plan only) | ✅ Day 5 |
+| Live OpenRouter executor (`open_app` / `set_theme`) | ✅ Phase 6 |
+| App SDK sketch (`defineApp` registry) | ✅ Phase 6 |
 | Theme engine (cupertino / dark / win95) | ✅ Day 5 |
 | Drift detection + full re-render | ✅ Day 5 |
 | Session export / import | ✅ Day 5 |
@@ -33,7 +35,7 @@ Event → reflex | compiled | prefetch | planner→executor (fast/big)
 | Session replay | ✅ |
 | Widget toolkit (11 types) | ✅ |
 | WebSocket + SQLite server | ✅ |
-| Eval CI (13 sequences) | ✅ |
+| Eval CI (16 sequences) | ✅ |
 
 ## Widgets
 
@@ -51,12 +53,12 @@ Event → reflex | compiled | prefetch | planner→executor (fast/big)
 - `switch to dark theme` / `win95 theme`
 - `double the token budget`
 
-OpenRouter mode uses a **live planner** (`planLive`) that returns structured plans; the **executor** still emits patches locally.
+OpenRouter mode uses a **live planner** (`planLive`) plus a **live executor** (`executeLive`) for `open_app` / `set_theme`. Invalid or missing model patches fall back to local templates. Eval covers the live path with fixture payloads (`agentMode: "live-fixture"`).
 
 ## Eval
 
 ```bash
-npm run eval   # 13 sequences
+npm run eval   # 16 sequences
 ```
 
 CI: `.github/workflows/eval.yml`
@@ -75,7 +77,8 @@ CI: `.github/workflows/eval.yml`
   public/viewport.html
   server/           # WebSocket + Drizzle SQLite + REST
   src/
-    agent/          # planner, planner-live, executor, router, budget, prefetch
+    agent/          # planner, planner-live, executor, executor-live, router, budget, prefetch
+    apps/           # defineApp registry (calendar, notes, settings)
     themes/         # CSS variable theme packs
     transport/      # ws-sync client
     runtime/        # loop, reflex, compiled, replay, viewport-bridge
@@ -87,7 +90,8 @@ CI: `.github/workflows/eval.yml`
 
 ## Roadmap
 
+- Expand live executor beyond `open_app` / `set_theme`
+- Full AG-UI WebSocket transport
 - Cloudflare Durable Objects deployment
 - 20+ widgets, more theme packs
-- Live LLM executor (patches from model)
-- Full AG-UI WebSocket transport
+- App SDK: seed desktop from registry (no hardcoded dock widgets)

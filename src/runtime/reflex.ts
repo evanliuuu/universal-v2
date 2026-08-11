@@ -35,6 +35,34 @@ export function tryReflex(
   const targetId = event.targetId;
   if (!targetId) return empty;
 
+  // Tab buttons are rendered by the tabs widget with synthetic ids (tab-*),
+  // not stored as standalone widget nodes.
+  if (event.type === "click" && targetId.startsWith("tab-")) {
+    const tab = targetId.replace("tab-", "");
+    const generalClass =
+      tab === "general"
+        ? "settings-form tab-panel-general"
+        : "settings-form tab-panel-general hidden-tab-panel";
+    const systemClass =
+      tab === "system"
+        ? "settings-panel tab-panel-system"
+        : "settings-panel tab-panel-system hidden-tab-panel";
+    return {
+      handled: true,
+      statePatch: [
+        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
+        { op: "replace", path: "/apps/settings/activeTab", value: tab },
+        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
+        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
+      ],
+      uiPatch: [
+        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
+        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
+        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
+      ],
+    };
+  }
+
   const widget = doc.state.widgets[targetId];
   if (!widget) return empty;
 
@@ -122,32 +150,6 @@ export function tryReflex(
       ],
       uiPatch: [
         { op: "replace", path: "/widgets/cal-label/props/text", value: next },
-      ],
-    };
-  }
-
-  if (event.type === "click" && targetId?.startsWith("tab-")) {
-    const tab = targetId.replace("tab-", "");
-    const generalClass =
-      tab === "general"
-        ? "settings-form tab-panel-general"
-        : "settings-form tab-panel-general hidden-tab-panel";
-    const systemClass =
-      tab === "system"
-        ? "settings-panel tab-panel-system"
-        : "settings-panel tab-panel-system hidden-tab-panel";
-    return {
-      handled: true,
-      statePatch: [
-        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
-        { op: "replace", path: "/apps/settings/activeTab", value: tab },
-        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
-        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
-      ],
-      uiPatch: [
-        { op: "replace", path: "/widgets/settings-tabs/props/activeTab", value: tab },
-        { op: "replace", path: "/widgets/settings-general/props/className", value: generalClass },
-        { op: "replace", path: "/widgets/settings-system/props/className", value: systemClass },
       ],
     };
   }

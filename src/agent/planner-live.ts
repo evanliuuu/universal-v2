@@ -1,11 +1,12 @@
 import { AgentPlanSchema } from "./plan-schema";
 import { SemanticEvent, UniversalState } from "../protocol/types";
 import { planMock, AgentPlan } from "./planner";
+import { readEnv } from "./env";
 
 function modelForPlanner(): string {
   return (
-    (import.meta.env.VITE_OPENROUTER_PLANNER_MODEL as string | undefined) ??
-    (import.meta.env.VITE_OPENROUTER_BIG_MODEL as string | undefined) ??
+    readEnv("VITE_OPENROUTER_PLANNER_MODEL") ??
+    readEnv("VITE_OPENROUTER_BIG_MODEL") ??
     "anthropic/claude-sonnet-4"
   );
 }
@@ -15,7 +16,7 @@ export async function planLive(
   state: UniversalState,
   event: SemanticEvent,
 ): Promise<AgentPlan> {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined;
+  const apiKey = readEnv("VITE_OPENROUTER_API_KEY");
   if (!apiKey) {
     return planMock(state, event);
   }

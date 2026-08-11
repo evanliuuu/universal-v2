@@ -1,0 +1,67 @@
+{
+  "name": "live-executor-open-notes",
+  "description": "Model-emitted patches open notes via live executor path",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes app" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "add",
+            "path": "/windows/win-notes",
+            "value": {
+              "id": "win-notes",
+              "title": "Notes",
+              "x": 200,
+              "y": 120,
+              "width": 420,
+              "height": 320,
+              "rootId": "notes-root",
+              "minimized": false
+            }
+          },
+          {
+            "op": "add",
+            "path": "/widgets/notes-root",
+            "value": {
+              "id": "notes-root",
+              "type": "window",
+              "props": { "title": "Notes", "windowId": "win-notes" },
+              "children": ["notes-input"]
+            }
+          },
+          {
+            "op": "add",
+            "path": "/widgets/notes-input",
+            "value": {
+              "id": "notes-input",
+              "type": "input",
+              "props": { "placeholder": "Type a note…", "value": "", "multiline": true },
+              "behavior": "local"
+            }
+          },
+          {
+            "op": "add",
+            "path": "/widgets/desktop/children/-",
+            "value": "notes-root"
+          },
+          {
+            "op": "replace",
+            "path": "/focus",
+            "value": { "windowId": "win-notes", "widgetId": "dock-notes" }
+          },
+          {
+            "op": "add",
+            "path": "/apps/notes",
+            "value": { "open": true, "body": "" }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Opening notes from model patches."
+      },
+      "assert": { "path": "/windows/win-notes", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}
