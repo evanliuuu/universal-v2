@@ -1,0 +1,45 @@
+{
+  "name": "live-executor-focus-calendar",
+  "description": "Model-emitted focus patch applied via live executor after another app takes focus",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/missing", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Invalid path so local template opens calendar."
+      },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "open notes app" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/missing", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Invalid path so local template opens notes."
+      },
+      "assert": { "path": "/focus/windowId", "eq": "win-notes" }
+    },
+    {
+      "event": { "type": "instruction", "value": "focus calendar" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "replace",
+            "path": "/focus",
+            "value": { "windowId": "win-calendar", "widgetId": "dock-calendar" }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Focusing calendar from model patches."
+      },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    }
+  ]
+}
