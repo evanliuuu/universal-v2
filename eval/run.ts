@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runAgUiProtocolEval } from "./ag-ui";
 import { AgentMode, runAgent } from "../src/agent/loop";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
 import { tryCompiled } from "../src/runtime/compiled";
@@ -126,7 +127,7 @@ const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = true;
+let allOk = runAgUiProtocolEval();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

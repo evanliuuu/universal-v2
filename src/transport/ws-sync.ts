@@ -1,4 +1,4 @@
-import type { PersistedEventRecord } from "../persistence/event-log";
+import { encodeDispatch, encodeStateSnapshot, EncodeDispatchOpts } from "../protocol/messages";
 import type { UniversalDocument } from "../state/patch";
 
 export class WsSync {
@@ -25,14 +25,13 @@ export class WsSync {
   }
 
   pushSnapshot(sessionId: string, seq: number, document: UniversalDocument) {
-    this.send({ type: "STATE_SNAPSHOT", sessionId, seq, document });
+    this.send(encodeStateSnapshot(sessionId, seq, document));
   }
 
-  pushEvent(sessionId: string, record: PersistedEventRecord) {
-    this.send({
-      type: "EVENT",
-      record: { sessionId, ...record },
-    });
+  pushDispatch(opts: EncodeDispatchOpts) {
+    for (const message of encodeDispatch(opts)) {
+      this.send(message);
+    }
   }
 
   private send(payload: object) {

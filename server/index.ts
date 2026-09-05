@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
+import { AgUiMessage, parseAgUiMessage } from "../src/protocol/messages.js";
 import {
   appendServerEvent,
   getLatestSession,
@@ -68,19 +69,10 @@ wss.on("connection", (socket) => {
   socket.on("message", async (raw) => {
     try {
       const msg = JSON.parse(String(raw));
-      if (msg.type === "STATE_SNAPSHOT") {
-        await saveSessionSnapshot({
-          id: msg.sessionId,
-          document: msg.document,
-          seq: msg.seq ?? 0,
-        });
-        broadcast({ type: "STATE_SNAPSHOT", sessionId: msg.sessionId, seq: msg.seq }, socket);
-        return;
-      }
-      if (msg.type === "EVENT") {
-        const record = msg.record as StoredEvent;
-        await appendServerEvent(record);
-        broadcast({ type: "EVENT", record }, socket);
+      const agUi = parseAgUiMessage(msg);
+      if (agUi) {
+        await persistAgUiMessage(agUi);
+        broadcast(agUi, socket);
         return;
       }
       if (msg.type === "GET_SESSION") {
@@ -91,7 +83,11 @@ wss.on("connection", (socket) => {
       if (msg.type === "GET_EVENTS") {
         const events = await getSessionEvents(msg.sessionId);
         socket.send(JSON.stringify({ type: "EVENTS", sessionId: msg.sessionId, events }));
+        return;
       }
+      socket.send(
+        JSON.stringify({ type: "ERROR", message: "unknown or invalid message" }),
+      );
     } catch (error) {
       socket.send(
         JSON.stringify({
@@ -102,6 +98,28 @@ wss.on("connection", (socket) => {
     }
   });
 });
+
+async function persistAgUiMessage(msg: AgUiMessage) {
+  if (msg.type === "STATE_SNAPSHOT") {
+    await saveSessionSnapshot({
+      id: msg.sessionId,
+      document: { state: msg.state, ui: msg.ui },
+      seq: msg.seq,
+    });
+    return;
+  }
+
+  const record: StoredEvent = {
+    sessionId: msg.sessionId,
+    seq: "seq" in msg ? msg.seq : 0,
+    event: msg.type === "EVENT" ? msg.event : msg,
+    tier: msg.type === "RUN_FINISHED" ? msg.tier : msg.type,
+    patches: "patch" in msg ? msg.patch : [],
+    latencyMs: "latencyMs" in msg ? msg.latencyMs : undefined,
+    at: new Date().toISOString(),
+  };
+  await appendServerEvent(record);
+}
 
 function broadcast(payload: object, except?: import("ws").WebSocket) {
   const data = JSON.stringify(payload);
