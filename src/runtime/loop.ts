@@ -338,16 +338,14 @@ export class UniversalRuntime {
       at: new Date().toISOString(),
     });
 
-    this.wsSync?.pushEvent(this.store.getSessionId(), {
+    this.wsSync?.pushDispatch({
       sessionId: this.store.getSessionId(),
       seq: opts.seq,
       event: opts.event,
-      tier: opts.tier,
-      modelTier: opts.modelTier,
-      prefetchHit: opts.prefetchHit,
       patches: opts.patches,
+      tier: opts.tier,
       latencyMs: opts.latencyMs,
-      at: new Date().toISOString(),
+      prefetchHit: opts.prefetchHit,
     });
 
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
