@@ -1,0 +1,19 @@
+{
+  "name": "live-executor-set-budget",
+  "description": "Model-emitted budget patch applied via live executor path",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "double the token budget" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/meta/budget/tokenLimit", "value": 100000 }
+        ],
+        "uiPatch": [],
+        "rationale": "Doubling token budget from model patches."
+      },
+      "assert": { "path": "/meta/budget/tokenLimit", "eq": 100000 },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -10,7 +10,12 @@ export const ExecutorPatchSchema = z.object({
 
 export type ExecutorPatch = z.infer<typeof ExecutorPatchSchema>;
 
-export const LIVE_EXECUTOR_ACTIONS = ["open_app", "set_theme"] as const;
+export const LIVE_EXECUTOR_ACTIONS = [
+  "open_app",
+  "focus_app",
+  "set_theme",
+  "set_budget",
+] as const;
 
 export type LiveExecutorAction = (typeof LIVE_EXECUTOR_ACTIONS)[number];
 
