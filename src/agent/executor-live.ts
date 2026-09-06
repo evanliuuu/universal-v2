@@ -73,7 +73,7 @@ export function applyModelExecutorOutput(
   };
 }
 
-/** Live executor: model emits validated patch ops for open_app / set_theme. */
+/** Live executor: model emits validated patch ops for open_app / focus_app / set_theme / set_budget. */
 export async function executeLive(
   plan: AgentPlan,
   state: UniversalState,
@@ -89,6 +89,8 @@ Given a plan, emit JSON Patch ops only (RFC 6902). Output JSON only:
 { "statePatch": [...], "uiPatch": [...], "rationale": "..." }
 Rules:
 - For set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"
+- For set_budget: replace /meta/budget/tokenLimit with the plan's tokenLimit
+- For focus_app: replace /focus with { "windowId": "win-<app>", "widgetId": "dock-<app>" }
 - For open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
 - Prefer small valid patches. Do not invent widget types outside: box, text, label, button, input, list, tabs, table, form, checkbox, window
 - uiPatch may be [] if widgets are included in statePatch`;
