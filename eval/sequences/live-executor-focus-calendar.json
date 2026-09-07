@@ -1,0 +1,33 @@
+{
+  "name": "live-executor-focus-calendar",
+  "description": "Model-emitted focus patch via live executor path",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "focus calendar" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "replace",
+            "path": "/focus",
+            "value": { "windowId": "win-calendar", "widgetId": "dock-calendar" }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Focusing calendar from model patches."
+      },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

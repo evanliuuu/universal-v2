@@ -350,6 +350,21 @@ export class UniversalRuntime {
       at: new Date().toISOString(),
     });
 
+    const sessionId = this.store.getSessionId();
+    for (const patch of opts.patches) {
+      if (patch.target === "state") {
+        this.wsSync?.pushStateDelta(sessionId, opts.seq, patch.ops);
+      } else if (patch.target === "ui") {
+        this.wsSync?.pushUiDelta(sessionId, opts.seq, patch.ops);
+      }
+    }
+    this.wsSync?.pushRunFinished(
+      sessionId,
+      opts.seq,
+      opts.tier,
+      opts.latencyMs,
+    );
+
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
       await this.persistSnapshot();
     }

@@ -5,6 +5,7 @@ import {
 } from "../protocol/types";
 import { createDocument } from "../state/patch";
 import { safeApplyPatches } from "../state/safe-patch";
+import { buildPlannerContext } from "./context-pack";
 import { readEnv } from "./env";
 import { executePlan } from "./executor";
 import {
@@ -21,14 +22,17 @@ function modelForExecutor(): string {
   );
 }
 
-function summarize(state: UniversalState) {
-  return {
-    theme: state.meta.theme,
-    openWindows: Object.keys(state.windows),
-    dock: state.desktop.dock,
-    budget: state.meta.budget,
-    focus: state.focus,
-  };
+function executorSystemPrompt(): string {
+  return `You are the EXECUTOR for a universal desktop runtime.
+Given a plan, emit JSON Patch ops only (RFC 6902). Output JSON only:
+{ "statePatch": [...], "uiPatch": [...], "rationale": "..." }
+Rules:
+- set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"
+- set_budget: replace /meta/budget/tokenLimit with a positive number
+- focus_app: replace /focus with { windowId: "win-<app>", widgetId: "dock-<app>" }
+- open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
+- Prefer small valid patches. Widget types: box, text, label, button, input, list, tabs, table, form, checkbox, window
+- uiPatch may be [] if widgets are included in statePatch`;
 }
 
 /**
@@ -73,7 +77,7 @@ export function applyModelExecutorOutput(
   };
 }
 
-/** Live executor: model emits validated patch ops for open_app / set_theme. */
+/** Live executor: model emits validated patch ops for supported plan actions. */
 export async function executeLive(
   plan: AgentPlan,
   state: UniversalState,
@@ -83,15 +87,6 @@ export async function executeLive(
 
   const apiKey = readEnv("VITE_OPENROUTER_API_KEY");
   if (!apiKey) return null;
-
-  const system = `You are the EXECUTOR for a universal desktop runtime.
-Given a plan, emit JSON Patch ops only (RFC 6902). Output JSON only:
-{ "statePatch": [...], "uiPatch": [...], "rationale": "..." }
-Rules:
-- For set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"
-- For open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
-- Prefer small valid patches. Do not invent widget types outside: box, text, label, button, input, list, tabs, table, form, checkbox, window
-- uiPatch may be [] if widgets are included in statePatch`;
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -105,12 +100,12 @@ Rules:
       body: JSON.stringify({
         model: modelForExecutor(),
         messages: [
-          { role: "system", content: system },
+          { role: "system", content: executorSystemPrompt() },
           {
             role: "user",
             content: JSON.stringify({
               plan,
-              state: summarize(state),
+              context: buildPlannerContext(state),
               event,
             }),
           },

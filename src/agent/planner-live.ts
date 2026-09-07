@@ -1,5 +1,6 @@
 import { AgentPlanSchema } from "./plan-schema";
 import { SemanticEvent, UniversalState } from "../protocol/types";
+import { buildPlannerContext } from "./context-pack";
 import { planMock, AgentPlan } from "./planner";
 import { readEnv } from "./env";
 
@@ -37,7 +38,7 @@ Decide intent from the event. Do NOT emit patches.`;
       model: modelForPlanner(),
       messages: [
         { role: "system", content: system },
-        { role: "user", content: JSON.stringify({ state: summarize(state), event }) },
+        { role: "user", content: JSON.stringify({ context: buildPlannerContext(state), event }) },
       ],
       response_format: { type: "json_object" },
     }),
@@ -52,14 +53,4 @@ Decide intent from the event. Do NOT emit patches.`;
   const result = AgentPlanSchema.safeParse(parsed);
   if (result.success) return result.data;
   return planMock(state, event);
-}
-
-function summarize(state: UniversalState) {
-  return {
-    theme: state.meta.theme,
-    openWindows: Object.keys(state.windows),
-    dock: state.desktop.dock,
-    budget: state.meta.budget,
-    focus: state.focus,
-  };
 }

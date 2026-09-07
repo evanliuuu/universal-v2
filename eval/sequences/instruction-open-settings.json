@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-settings",
+  "description": "Natural language instruction opens settings",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

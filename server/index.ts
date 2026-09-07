@@ -69,18 +69,43 @@ wss.on("connection", (socket) => {
     try {
       const msg = JSON.parse(String(raw));
       if (msg.type === "STATE_SNAPSHOT") {
+        const document =
+          msg.document ??
+          (msg.state && msg.ui ? { state: msg.state, ui: msg.ui } : null);
+        if (!document) {
+          throw new Error("STATE_SNAPSHOT requires document or state+ui");
+        }
         await saveSessionSnapshot({
           id: msg.sessionId,
-          document: msg.document,
+          document,
           seq: msg.seq ?? 0,
         });
-        broadcast({ type: "STATE_SNAPSHOT", sessionId: msg.sessionId, seq: msg.seq }, socket);
+        broadcast(
+          {
+            type: "STATE_SNAPSHOT",
+            sessionId: msg.sessionId,
+            seq: msg.seq,
+            state: document.state,
+            ui: document.ui,
+          },
+          socket,
+        );
+        return;
+      }
+      if (msg.type === "STATE_DELTA" || msg.type === "UI_DELTA") {
+        broadcast(msg, socket);
+        return;
+      }
+      if (msg.type === "RUN_FINISHED") {
+        broadcast(msg, socket);
         return;
       }
       if (msg.type === "EVENT") {
-        const record = msg.record as StoredEvent;
-        await appendServerEvent(record);
-        broadcast({ type: "EVENT", record }, socket);
+        const record = (msg.record ?? msg.event) as StoredEvent;
+        if (msg.record) {
+          await appendServerEvent(record);
+        }
+        broadcast({ type: "EVENT", sessionId: msg.sessionId, event: record }, socket);
         return;
       }
       if (msg.type === "GET_SESSION") {

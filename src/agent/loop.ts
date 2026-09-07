@@ -78,7 +78,7 @@ function runLiveFixtureAgent(
   }
 
   const plan = planMock(state, event);
-  if (!isLiveExecutorAction(plan.action)) {
+  if (!isLiveExecutorAction(plan.action) || modelPatches === undefined) {
     const response = executePlan(plan, state);
     return {
       ...response,
@@ -86,7 +86,7 @@ function runLiveFixtureAgent(
     };
   }
 
-  const applied = applyModelExecutorOutput(modelPatches ?? {}, plan, state);
+  const applied = applyModelExecutorOutput(modelPatches, plan, state);
   return {
     ...applied.response,
     rationale: `[live-fixture→${applied.source} executor] ${applied.response.rationale ?? plan.rationale}`,

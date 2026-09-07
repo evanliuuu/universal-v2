@@ -1,4 +1,12 @@
 import type { PersistedEventRecord } from "../persistence/event-log";
+import {
+  encodeEvent,
+  encodeRunFinished,
+  encodeStateDelta,
+  encodeStateSnapshot,
+  encodeUiDelta,
+} from "../protocol/ag-ui";
+import { JsonPatchOp } from "../protocol/types";
 import type { UniversalDocument } from "../state/patch";
 
 export class WsSync {
@@ -25,14 +33,35 @@ export class WsSync {
   }
 
   pushSnapshot(sessionId: string, seq: number, document: UniversalDocument) {
-    this.send({ type: "STATE_SNAPSHOT", sessionId, seq, document });
+    this.send(encodeStateSnapshot(sessionId, seq, document));
+  }
+
+  pushStateDelta(sessionId: string, seq: number, patch: JsonPatchOp[]) {
+    if (!patch.length) return;
+    this.send(encodeStateDelta(sessionId, seq, patch));
+  }
+
+  pushUiDelta(sessionId: string, seq: number, patch: JsonPatchOp[]) {
+    if (!patch.length) return;
+    this.send(encodeUiDelta(sessionId, seq, patch));
   }
 
   pushEvent(sessionId: string, record: PersistedEventRecord) {
-    this.send({
-      type: "EVENT",
-      record: { sessionId, ...record },
-    });
+    this.send(
+      encodeEvent(sessionId, {
+        ...record,
+        sessionId,
+      }),
+    );
+  }
+
+  pushRunFinished(
+    sessionId: string,
+    seq: number,
+    tier: string,
+    latencyMs: number,
+  ) {
+    this.send(encodeRunFinished(sessionId, seq, tier, latencyMs));
   }
 
   private send(payload: object) {
