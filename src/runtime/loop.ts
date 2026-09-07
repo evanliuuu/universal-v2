@@ -1,6 +1,7 @@
 import {
   AgentResponse,
   AppliedPatch,
+  EventLogEntry,
   ExecutionTier,
   SemanticEvent,
 } from "../protocol/types";
@@ -233,6 +234,7 @@ export class UniversalRuntime {
         modelTier,
         state: doc.state,
         event,
+        recentEvents: recentEventsFromLog(this.store.getLog()),
       });
 
       const tokenOps = [
@@ -405,7 +407,12 @@ export class UniversalRuntime {
 
       this.prefetch.markInFlight(key);
       try {
-        const response = await prefetchAgent(this.agentMode, state, event);
+        const response = await prefetchAgent(
+          this.agentMode,
+          state,
+          event,
+          recentEventsFromLog(this.store.getLog()),
+        );
         this.prefetch.set(event, response);
       } catch {
         // Prefetch is best-effort
@@ -418,3 +425,7 @@ export class UniversalRuntime {
 }
 
 export { tierLabel };
+
+function recentEventsFromLog(log: EventLogEntry[]): SemanticEvent[] {
+  return log.map((entry) => entry.event).reverse();
+}

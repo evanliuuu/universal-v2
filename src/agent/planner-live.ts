@@ -17,6 +17,7 @@ function modelForPlanner(): string {
 export async function planLive(
   state: UniversalState,
   event: SemanticEvent,
+  recentEvents: SemanticEvent[] = [],
 ): Promise<AgentPlan> {
   const apiKey = readEnv("VITE_OPENROUTER_API_KEY");
   if (!apiKey) {
@@ -25,14 +26,17 @@ export async function planLive(
 
   const system = `You are the PLANNER for a universal desktop runtime. Output JSON only:
 { "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "calendar"|"notes"|"settings", "theme": "cupertino"|"dark"|"win95", "tokenLimit": number, "rationale": "..." }
-Decide intent from the event. Do NOT emit patches.`;
+Use the context pack (open window titles, focused widget, recent events, budget) to decide intent. Prefer focus_app when that app is already open. Do NOT emit patches.`;
 
   const result = await openRouterChat({
     apiKey,
     title: "universal-v2-planner",
     model: modelForPlanner(),
     system,
-    user: JSON.stringify({ context: buildPlannerContext(state), event }),
+    user: JSON.stringify({
+      context: buildPlannerContext(state, recentEvents),
+      event,
+    }),
   });
 
   if (!result.ok) {
