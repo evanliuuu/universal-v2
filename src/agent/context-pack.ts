@@ -1,4 +1,4 @@
-import { listApps } from "../apps/registry";
+import { listApps } from "../apps";
 import { UniversalState } from "../protocol/types";
 
 /** Compact state summary for planner/executor prompts. */

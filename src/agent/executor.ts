@@ -1,4 +1,4 @@
-import { getApp } from "../apps/registry";
+import { getApp } from "../apps";
 import { AgentResponse, UniversalState } from "../protocol/types";
 import { AgentPlan } from "./planner";
 

@@ -1,8 +1,3 @@
-import {
-  calendarWindowPatches,
-  notesWindowPatches,
-  settingsWindowPatches,
-} from "../state/seed";
 import { AppDefinition } from "./types";
 
 const apps = new Map<string, AppDefinition>();
@@ -28,33 +23,3 @@ export function requireApp(id: string): AppDefinition {
   if (!app) throw new Error(`Unknown app: ${id}`);
   return app;
 }
-
-defineApp({
-  id: "calendar",
-  title: "Calendar",
-  dockId: "dock-calendar",
-  windowId: "win-calendar",
-  dockLabel: "📅",
-  dockTitle: "Calendar",
-  open: () => calendarWindowPatches(),
-});
-
-defineApp({
-  id: "notes",
-  title: "Notes",
-  dockId: "dock-notes",
-  windowId: "win-notes",
-  dockLabel: "🗒️",
-  dockTitle: "Notes",
-  open: () => notesWindowPatches(),
-});
-
-defineApp({
-  id: "settings",
-  title: "Settings",
-  dockId: "dock-settings",
-  windowId: "win-settings",
-  dockLabel: "⚙️",
-  dockTitle: "Settings",
-  open: (state) => settingsWindowPatches(state),
-});

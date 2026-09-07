@@ -1,0 +1,14 @@
+{
+  "name": "seed-dock-from-registry",
+  "description": "Desktop dock icons come from registered apps",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "do nothing" },
+      "assert": {
+        "path": "/desktop/dock",
+        "eq": ["dock-calendar", "dock-notes", "dock-settings"]
+      },
+      "expectTier": "agent-big"
+    }
+  ]
+}
