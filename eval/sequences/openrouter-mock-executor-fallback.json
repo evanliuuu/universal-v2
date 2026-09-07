@@ -1,0 +1,26 @@
+{
+  "name": "openrouter-mock-executor-fallback",
+  "description": "Stubbed OpenRouter executor falls back when patches cannot apply",
+  "agentMode": "openrouter",
+  "mockResponses": [
+    {
+      "action": "set_theme",
+      "theme": "dark",
+      "rationale": "Switch to dark."
+    },
+    {
+      "statePatch": [
+        { "op": "replace", "path": "/meta/theme/nested/missing", "value": "dark" }
+      ],
+      "uiPatch": [],
+      "rationale": "Bad path on purpose."
+    }
+  ],
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

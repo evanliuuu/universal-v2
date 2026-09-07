@@ -3,6 +3,7 @@ import { SemanticEvent, UniversalState } from "../protocol/types";
 import { buildPlannerContext } from "./context-pack";
 import { planMock, AgentPlan } from "./planner";
 import { readEnv } from "./env";
+import { openRouterChat } from "./openrouter";
 
 function modelForPlanner(): string {
   return (
@@ -26,31 +27,24 @@ export async function planLive(
 { "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "calendar"|"notes"|"settings", "theme": "cupertino"|"dark"|"win95", "tokenLimit": number, "rationale": "..." }
 Decide intent from the event. Do NOT emit patches.`;
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5174",
-      "X-Title": "universal-v2-planner",
-    },
-    body: JSON.stringify({
-      model: modelForPlanner(),
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: JSON.stringify({ context: buildPlannerContext(state), event }) },
-      ],
-      response_format: { type: "json_object" },
-    }),
+  const result = await openRouterChat({
+    apiKey,
+    title: "universal-v2-planner",
+    model: modelForPlanner(),
+    system,
+    user: JSON.stringify({ context: buildPlannerContext(state), event }),
   });
 
-  if (!res.ok) {
+  if (!result.ok) {
     return planMock(state, event);
   }
 
-  const data = await res.json();
-  const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
-  const result = AgentPlanSchema.safeParse(parsed);
-  if (result.success) return result.data;
+  try {
+    const parsed = JSON.parse(result.content);
+    const plan = AgentPlanSchema.safeParse(parsed);
+    if (plan.success) return plan.data;
+  } catch {
+    // fall through to mock
+  }
   return planMock(state, event);
 }

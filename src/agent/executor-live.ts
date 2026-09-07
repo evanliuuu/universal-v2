@@ -12,6 +12,7 @@ import {
   ExecutorPatchSchema,
   isLiveExecutorAction,
 } from "./executor-schema";
+import { openRouterChat } from "./openrouter";
 import { AgentPlan } from "./planner";
 
 function modelForExecutor(): string {
@@ -89,42 +90,27 @@ export async function executeLive(
   if (!apiKey) return null;
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:5174",
-        "X-Title": "universal-v2-executor",
-      },
-      body: JSON.stringify({
-        model: modelForExecutor(),
-        messages: [
-          { role: "system", content: executorSystemPrompt() },
-          {
-            role: "user",
-            content: JSON.stringify({
-              plan,
-              context: buildPlannerContext(state),
-              event,
-            }),
-          },
-        ],
-        response_format: { type: "json_object" },
+    const result = await openRouterChat({
+      apiKey,
+      title: "universal-v2-executor",
+      model: modelForExecutor(),
+      system: executorSystemPrompt(),
+      user: JSON.stringify({
+        plan,
+        context: buildPlannerContext(state),
+        event,
       }),
     });
 
-    if (!res.ok) {
+    if (!result.ok) {
       return {
         response: executePlan(plan, state),
         source: "fallback",
-        error: `openrouter ${res.status}`,
+        error: `openrouter ${result.status}`,
       };
     }
 
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content ?? "{}";
-    const raw = typeof content === "string" ? JSON.parse(content) : content;
+    const raw = JSON.parse(result.content);
     return applyModelExecutorOutput(raw, plan, state);
   } catch (error) {
     return {

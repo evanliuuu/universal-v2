@@ -1,0 +1,26 @@
+{
+  "name": "openrouter-mock-set-theme",
+  "description": "Stubbed OpenRouter planner+executor sets win95 theme",
+  "agentMode": "openrouter",
+  "mockResponses": [
+    {
+      "action": "set_theme",
+      "theme": "win95",
+      "rationale": "Switch to Win95."
+    },
+    {
+      "statePatch": [
+        { "op": "replace", "path": "/meta/theme", "value": "win95" }
+      ],
+      "uiPatch": [],
+      "rationale": "Applying Win95 theme."
+    }
+  ],
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "use the win95 theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

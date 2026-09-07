@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentMode, runAgent } from "../src/agent/loop";
+import { setOpenRouterChat } from "../src/agent/openrouter";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
 import { tryCompiled } from "../src/runtime/compiled";
 import { safeApplyPatches } from "../src/state/safe-patch";
@@ -30,6 +31,8 @@ type EvalStep = {
 type EvalSequence = {
   name: string;
   agentMode?: AgentMode;
+  /** Queued JSON bodies for planner then executor OpenRouter calls. */
+  mockResponses?: unknown[];
   steps: EvalStep[];
 };
 
@@ -81,40 +84,57 @@ async function runSequence(file: string): Promise<boolean> {
   let doc = createDocument(createSeedState());
   let passed = 0;
   const agentMode = seq.agentMode ?? "mock";
+  const prevKey = process.env.VITE_OPENROUTER_API_KEY;
+  const queue = [...(seq.mockResponses ?? [])];
+
+  if (seq.mockResponses) {
+    process.env.VITE_OPENROUTER_API_KEY = "eval-mock";
+    setOpenRouterChat(async () => {
+      const next = queue.shift();
+      if (next === undefined) return { ok: false, status: 503 };
+      return { ok: true, content: JSON.stringify(next) };
+    });
+  }
 
   console.log(`\n▶ ${seq.name}${agentMode !== "mock" ? ` [${agentMode}]` : ""}`);
 
-  for (const [i, step] of seq.steps.entries()) {
-    const event = createSemanticEvent(step.event);
-    const { doc: next, tier } = await dispatchStep(
-      doc,
-      event,
-      agentMode,
-      step.modelPatches,
-    );
-    doc = next;
+  try {
+    for (const [i, step] of seq.steps.entries()) {
+      const event = createSemanticEvent(step.event);
+      const { doc: next, tier } = await dispatchStep(
+        doc,
+        event,
+        agentMode,
+        step.modelPatches,
+      );
+      doc = next;
 
-    const actual = getAtPath(doc.state, step.assert.path);
-    let ok = false;
-    if ("exists" in step.assert) {
-      ok = step.assert.exists ? actual !== undefined : actual === undefined;
-    } else if ("eq" in step.assert) {
-      ok = JSON.stringify(actual) === JSON.stringify(step.assert.eq);
-    }
+      const actual = getAtPath(doc.state, step.assert.path);
+      let ok = false;
+      if ("exists" in step.assert) {
+        ok = step.assert.exists ? actual !== undefined : actual === undefined;
+      } else if ("eq" in step.assert) {
+        ok = JSON.stringify(actual) === JSON.stringify(step.assert.eq);
+      }
 
-    if (ok && step.expectTier && tier !== step.expectTier) {
-      ok = false;
-      console.log(`      tier: expected ${step.expectTier}, got ${tier}`);
-    }
+      if (ok && step.expectTier && tier !== step.expectTier) {
+        ok = false;
+        console.log(`      tier: expected ${step.expectTier}, got ${tier}`);
+      }
 
-    const mark = ok ? "✓" : "✗";
-    console.log(`  ${mark} step ${i + 1} [${tier}]: ${step.assert.path}`);
-    if (!ok) {
-      console.log(`      expected: ${JSON.stringify(step.assert)}`);
-      console.log(`      actual:   ${JSON.stringify(actual)}`);
-    } else {
-      passed++;
+      const mark = ok ? "✓" : "✗";
+      console.log(`  ${mark} step ${i + 1} [${tier}]: ${step.assert.path}`);
+      if (!ok) {
+        console.log(`      expected: ${JSON.stringify(step.assert)}`);
+        console.log(`      actual:   ${JSON.stringify(actual)}`);
+      } else {
+        passed++;
+      }
     }
+  } finally {
+    setOpenRouterChat(undefined);
+    if (prevKey === undefined) delete process.env.VITE_OPENROUTER_API_KEY;
+    else process.env.VITE_OPENROUTER_API_KEY = prevKey;
   }
 
   console.log(`  ${passed}/${seq.steps.length} passed`);
