@@ -1,0 +1,19 @@
+{
+  "name": "instruction-refocus-calendar",
+  "description": "After notes takes focus, an instruction focuses the already-open calendar",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-notes" },
+      "assert": { "path": "/focus/windowId", "eq": "win-notes" }
+    },
+    {
+      "event": { "type": "instruction", "value": "focus the calendar" },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

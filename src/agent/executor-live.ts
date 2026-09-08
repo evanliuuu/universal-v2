@@ -83,6 +83,7 @@ export async function executeLive(
   plan: AgentPlan,
   state: UniversalState,
   event: SemanticEvent,
+  recentEvents: SemanticEvent[] = [],
 ): Promise<{ response: AgentResponse; source: "live" | "fallback"; error?: string } | null> {
   if (!isLiveExecutorAction(plan.action)) return null;
 
@@ -97,7 +98,7 @@ export async function executeLive(
       system: executorSystemPrompt(),
       user: JSON.stringify({
         plan,
-        context: buildPlannerContext(state),
+        context: buildPlannerContext(state, recentEvents),
         event,
       }),
     });

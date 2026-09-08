@@ -1,9 +1,11 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildPlannerContext } from "../src/agent/context-pack";
 import { AgentMode, runAgent } from "../src/agent/loop";
 import { setOpenRouterChat } from "../src/agent/openrouter";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
+import { getApp } from "../src/apps";
 import { tryCompiled } from "../src/runtime/compiled";
 import { safeApplyPatches } from "../src/state/safe-patch";
 import { createDocument } from "../src/state/patch";
@@ -51,6 +53,7 @@ async function dispatchStep(
   event: SemanticEvent,
   agentMode: AgentMode,
   modelPatches?: unknown,
+  recentEvents: SemanticEvent[] = [],
 ): Promise<{ doc: typeof doc; tier: ExecutionTier }> {
   const reflex = tryReflex(doc, event);
   if (reflex.handled) {
@@ -73,6 +76,7 @@ async function dispatchStep(
     state: doc.state,
     event,
     modelPatches,
+    recentEvents,
   });
   const result = safeApplyPatches(doc, response.statePatch, response.uiPatch);
   if (!result.ok) throw new Error(result.error);
@@ -98,6 +102,8 @@ async function runSequence(file: string): Promise<boolean> {
 
   console.log(`\n▶ ${seq.name}${agentMode !== "mock" ? ` [${agentMode}]` : ""}`);
 
+  const recentEvents: SemanticEvent[] = [];
+
   try {
     for (const [i, step] of seq.steps.entries()) {
       const event = createSemanticEvent(step.event);
@@ -106,8 +112,10 @@ async function runSequence(file: string): Promise<boolean> {
         event,
         agentMode,
         step.modelPatches,
+        recentEvents,
       );
       doc = next;
+      recentEvents.push(event);
 
       const actual = getAtPath(doc.state, step.assert.path);
       let ok = false;
@@ -141,12 +149,68 @@ async function runSequence(file: string): Promise<boolean> {
   return passed === seq.steps.length;
 }
 
+function runPlannerContextChecks(): boolean {
+  console.log("\n▶ planner-context-pack");
+  const checks: Array<[string, boolean]> = [];
+  const check = (name: string, ok: boolean) => checks.push([name, ok]);
+
+  const seed = createSeedState();
+  const empty = buildPlannerContext(seed);
+  check("seed theme", empty.theme === "cupertino");
+  check("seed has no windows", empty.windows.length === 0);
+  check("seed has no focused widget", empty.focusedWidget === undefined);
+  check("seed recent events empty", empty.recentEvents.length === 0);
+  check("seed dock includes calendar", empty.dock.includes("dock-calendar"));
+
+  const calendar = getApp("calendar");
+  if (!calendar) {
+    console.log("  ✗ calendar app is registered");
+    return false;
+  }
+
+  const opened = safeApplyPatches(
+    createDocument(structuredClone(seed)),
+    calendar.open().statePatch,
+    calendar.open().uiPatch,
+  );
+  if (!opened.ok) {
+    console.log(`  ✗ apply calendar patches: ${opened.error}`);
+    return false;
+  }
+
+  const ctx = buildPlannerContext(opened.doc.state, [
+    { type: "click", targetId: "dock-calendar" },
+    { type: "instruction", value: "open calendar" },
+  ]);
+  check("openApps includes calendar", ctx.openApps.includes("calendar"));
+  check(
+    "window title is Calendar",
+    ctx.windows.some((win) => win.id === "win-calendar" && win.title === "Calendar"),
+  );
+  check("focused window title", ctx.focusedWindow?.title === "Calendar");
+  check("focused widget type", ctx.focusedWidget?.type === "button");
+  check("focused widget title", ctx.focusedWidget?.title === "Calendar");
+  check("recent events keep last click", ctx.recentEvents[0]?.targetId === "dock-calendar");
+  check(
+    "recent events keep instruction text",
+    ctx.recentEvents[1]?.value === "open calendar",
+  );
+
+  let passed = 0;
+  for (const [name, ok] of checks) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${checks.length} passed`);
+  return passed === checks.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = true;
+let allOk = runPlannerContextChecks();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;
