@@ -89,5 +89,6 @@ defineApp({
   windowId: "win-notes",
   dockLabel: "🗒️",
   dockTitle: "Notes",
+  aliases: ["note"],
   open: () => notesWindowPatches(),
 });

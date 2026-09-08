@@ -13,6 +13,8 @@ export type AppDefinition = {
   windowId: string;
   dockLabel: string;
   dockTitle?: string;
+  /** Extra words that match this app in NL instructions. */
+  aliases?: string[];
   /** Produce open-window patches from current state. */
   open: (state?: UniversalState) => AppPatches;
   handlers?: CompiledHandler[];

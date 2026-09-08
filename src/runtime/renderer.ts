@@ -26,7 +26,9 @@ const VIEWPORT_CSS = `
   .uw-day-cell.selected { background: var(--uw-accent, #007aff); color: white; border-color: var(--uw-accent, #007aff); }
   .uw-input, textarea.uw-input { width: 100%; min-height: 180px; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font: inherit; resize: vertical; }
   .uw-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .uw-list-item { padding: 8px 10px; border-radius: 6px; background: #f5f5f7; border: 1px solid #e5e5ea; }
+  .uw-list-item { padding: 8px 10px; border-radius: 6px; background: #f5f5f7; border: 1px solid #e5e5ea; cursor: pointer; }
+  .uw-list-item.selected { background: var(--uw-accent, #007aff); color: white; border-color: var(--uw-accent, #007aff); }
+  .uw-files-preview { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; padding: 10px; border: 1px solid #e5e5ea; border-radius: 8px; min-height: 140px; }
   .uw-label { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
   .uw-tabs { display: flex; flex-direction: column; gap: 12px; }
   .uw-tab-bar { display: flex; gap: 6px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }

@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-files",
+  "description": "Natural language instruction opens files",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open the files app" },
+      "assert": { "path": "/windows/win-files", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

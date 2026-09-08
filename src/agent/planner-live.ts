@@ -1,3 +1,4 @@
+import { listApps } from "../apps";
 import { AgentPlanSchema } from "./plan-schema";
 import { SemanticEvent, UniversalState } from "../protocol/types";
 import { buildPlannerContext } from "./context-pack";
@@ -23,8 +24,11 @@ export async function planLive(
     return planMock(state, event);
   }
 
+  const apps = listApps()
+    .map((app) => app.id)
+    .join("|");
   const system = `You are the PLANNER for a universal desktop runtime. Output JSON only:
-{ "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "calendar"|"notes"|"settings", "theme": "cupertino"|"dark"|"win95", "tokenLimit": number, "rationale": "..." }
+{ "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "${apps}", "theme": "cupertino"|"dark"|"win95", "tokenLimit": number, "rationale": "..." }
 Decide intent from the event. Do NOT emit patches.`;
 
   const result = await openRouterChat({

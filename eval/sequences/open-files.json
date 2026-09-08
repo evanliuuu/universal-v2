@@ -1,0 +1,11 @@
+{
+  "name": "open-files",
+  "description": "Dock opens the files app",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-files" },
+      "assert": { "path": "/windows/win-files", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

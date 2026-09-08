@@ -181,5 +181,6 @@ defineApp({
   windowId: "win-settings",
   dockLabel: "⚙️",
   dockTitle: "Settings",
+  aliases: ["setting"],
   open: (state) => settingsWindowPatches(state),
 });

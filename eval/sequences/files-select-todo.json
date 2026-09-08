@@ -1,0 +1,15 @@
+{
+  "name": "files-select-todo",
+  "description": "Clicking a files list item updates the preview",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-files" },
+      "assert": { "path": "/apps/files/selected", "eq": "readme" }
+    },
+    {
+      "event": { "type": "click", "targetId": "files-list", "value": "todo" },
+      "assert": { "path": "/apps/files/selected", "eq": "todo" },
+      "expectTier": "reflex"
+    }
+  ]
+}

@@ -144,6 +144,7 @@ export class UniversalRuntime {
         createSemanticEvent({
           type: "click",
           targetId: data.targetId,
+          value: data.value,
         }),
       );
       return;

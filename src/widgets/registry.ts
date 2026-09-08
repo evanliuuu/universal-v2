@@ -73,11 +73,13 @@ registerWidget("label", (node) => {
 
 registerWidget("list", (node) => {
   const items = (node.props.items as Array<{ id?: string; label?: string } | string>) ?? [];
+  const selected = String(node.props.selectedId ?? "");
   const lis = items
     .map((item) => {
       const label = typeof item === "string" ? item : (item.label ?? "");
       const id = typeof item === "string" ? "" : (item.id ?? "");
-      return `<li class="uw-list-item" data-item-id="${escapeHtml(id)}">${escapeHtml(label)}</li>`;
+      const sel = id && id === selected ? " selected" : "";
+      return `<li class="uw-list-item${sel}" data-item-id="${escapeHtml(id)}">${escapeHtml(label)}</li>`;
     })
     .join("");
   return `<ul ${dataAttrs(node)} class="${cls(node)}">${lis}</ul>`;

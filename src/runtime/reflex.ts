@@ -1,6 +1,7 @@
 import { JsonPatchOp, SemanticEvent } from "../protocol/types";
 import { UniversalDocument } from "../state/patch";
 import { getBudget } from "../agent/budget";
+import { filesContents } from "../apps/files";
 
 export type ReflexResult = {
   handled: boolean;
@@ -160,6 +161,23 @@ export function tryReflex(
       handled: true,
       statePatch: [{ op: "replace", path: "/meta/theme", value: theme }],
       uiPatch: [],
+    };
+  }
+
+  if (event.type === "click" && targetId === "files-list" && typeof event.value === "string") {
+    const body = filesContents()[event.value];
+    if (!body) return empty;
+    return {
+      handled: true,
+      statePatch: [
+        { op: "replace", path: "/widgets/files-list/props/selectedId", value: event.value },
+        { op: "replace", path: "/widgets/files-preview/props/text", value: body },
+        { op: "replace", path: "/apps/files/selected", value: event.value },
+      ],
+      uiPatch: [
+        { op: "replace", path: "/widgets/files-list/props/selectedId", value: event.value },
+        { op: "replace", path: "/widgets/files-preview/props/text", value: body },
+      ],
     };
   }
 

@@ -1,3 +1,4 @@
+import { listApps } from "../apps";
 import { SemanticEvent, UniversalState } from "../protocol/types";
 
 export type AgentPlan = {
@@ -7,11 +8,26 @@ export type AgentPlan = {
     | "set_theme"
     | "set_budget"
     | "noop";
-  app?: "calendar" | "notes" | "settings";
+  app?: string;
   theme?: string;
   tokenLimit?: number;
   rationale: string;
 };
+
+function planForApp(
+  appId: string,
+  state: UniversalState,
+  rationale: string,
+): AgentPlan {
+  const app = listApps().find((a) => a.id === appId);
+  if (!app) {
+    return { action: "noop", rationale: `Unknown app ${appId}` };
+  }
+  if (state.windows[app.windowId]) {
+    return { action: "focus_app", app: app.id, rationale };
+  }
+  return { action: "open_app", app: app.id, rationale };
+}
 
 /** Planner: decide *what* to do from (state, event). No patches yet. */
 export function planMock(
@@ -22,37 +38,17 @@ export function planMock(
     return parseInstruction(event.value, state);
   }
 
-  if (event.type === "click" && event.targetId === "dock-calendar") {
-    if (state.windows["win-calendar"]) {
-      return {
-        action: "focus_app",
-        app: "calendar",
-        rationale: "Calendar open; focus window.",
-      };
+  if (event.type === "click" && event.targetId) {
+    const app = listApps().find((a) => a.dockId === event.targetId);
+    if (app) {
+      return planForApp(
+        app.id,
+        state,
+        state.windows[app.windowId]
+          ? `${app.title} open; focus window.`
+          : `Open ${app.title.toLowerCase()}.`,
+      );
     }
-    return { action: "open_app", app: "calendar", rationale: "Open calendar." };
-  }
-
-  if (event.type === "click" && event.targetId === "dock-notes") {
-    if (state.windows["win-notes"]) {
-      return {
-        action: "focus_app",
-        app: "notes",
-        rationale: "Notes open; focus window.",
-      };
-    }
-    return { action: "open_app", app: "notes", rationale: "Open notes." };
-  }
-
-  if (event.type === "click" && event.targetId === "dock-settings") {
-    if (state.windows["win-settings"]) {
-      return {
-        action: "focus_app",
-        app: "settings",
-        rationale: "Settings open; focus window.",
-      };
-    }
-    return { action: "open_app", app: "settings", rationale: "Open settings." };
   }
 
   return {
@@ -67,20 +63,13 @@ export function parseInstruction(
 ): AgentPlan {
   const lower = text.toLowerCase();
 
-  if (lower.includes("calendar")) {
-    return state.windows["win-calendar"]
-      ? { action: "focus_app", app: "calendar", rationale: text }
-      : { action: "open_app", app: "calendar", rationale: text };
-  }
-  if (lower.includes("note")) {
-    return state.windows["win-notes"]
-      ? { action: "focus_app", app: "notes", rationale: text }
-      : { action: "open_app", app: "notes", rationale: text };
-  }
-  if (lower.includes("setting")) {
-    return state.windows["win-settings"]
-      ? { action: "focus_app", app: "settings", rationale: text }
-      : { action: "open_app", app: "settings", rationale: text };
+  for (const app of listApps()) {
+    const names = [app.id, app.title, ...(app.aliases ?? [])].map((n) =>
+      n.toLowerCase(),
+    );
+    if (names.some((name) => lower.includes(name))) {
+      return planForApp(app.id, state, text);
+    }
   }
 
   if (lower.includes("dark") || lower.includes("win95")) {
