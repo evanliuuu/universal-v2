@@ -1,0 +1,20 @@
+{
+  "name": "settings-ui-scale-slider",
+  "description": "UI scale slider updates apps.settings.uiScale via reflex",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/windows/win-settings", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "tab-system" },
+      "assert": { "path": "/apps/settings/activeTab", "eq": "system" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "input", "targetId": "ui-scale-slider", "value": 120 },
+      "assert": { "path": "/apps/settings/uiScale", "eq": 120 },
+      "expectTier": "reflex"
+    }
+  ]
+}

@@ -30,6 +30,15 @@
           const input = el.querySelector("input[type=checkbox]");
           if (input && props.checked != null) input.checked = !!props.checked;
         }
+        if (widgetType === "select" && props.value != null) {
+          el.value = props.value;
+        }
+        if (widgetType === "slider" && props.value != null) {
+          const input = el.querySelector("input[type=range]");
+          if (input) input.value = String(props.value);
+          const out = el.querySelector(".uw-slider-value");
+          if (out) out.textContent = String(props.value);
+        }
         if (widgetType === "list") {
           const items = props.items ?? [];
           const selected = props.selectedId ?? "";
@@ -80,6 +89,9 @@
           let value = el.value ?? el.textContent ?? "";
           const checkbox = el.querySelector?.("input[type=checkbox]");
           if (checkbox) value = checkbox.checked;
+          const range = el.querySelector?.("input[type=range]");
+          if (range) value = Number(range.value);
+          if (el.tagName === "SELECT") value = el.value;
           parent.postMessage(
             {
               source: "universal-viewport",
@@ -93,16 +105,24 @@
         });
 
         document.addEventListener("change", (e) => {
-          const input = e.target.closest("input[type=checkbox]");
-          if (!input) return;
-          const el = input.closest("[data-widget-id]");
+          const target = e.target;
+          if (!(target instanceof HTMLElement)) return;
+          const checkbox = target.closest("input[type=checkbox]");
+          const select = target.closest("select");
+          const range = target.closest("input[type=range]");
+          const el = target.closest("[data-widget-id]");
           if (!el) return;
+          let value;
+          if (checkbox) value = checkbox.checked;
+          else if (select) value = select.value;
+          else if (range) value = Number(range.value);
+          else return;
           parent.postMessage(
             {
               source: "universal-viewport",
               type: "input",
               targetId: el.dataset.widgetId,
-              value: input.checked,
+              value,
               behavior: el.dataset.behavior || "local",
             },
             "*",

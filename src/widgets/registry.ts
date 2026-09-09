@@ -128,6 +128,30 @@ registerWidget("checkbox", (node) => {
   return `<label ${dataAttrs(node)} class="${cls(node, "uw-checkbox")}"><input type="checkbox"${checked} /> ${escapeHtml(label)}</label>`;
 });
 
+registerWidget("select", (node) => {
+  const options =
+    (node.props.options as Array<{ id: string; label: string }>) ?? [];
+  const value = String(node.props.value ?? options[0]?.id ?? "");
+  const opts = options
+    .map((opt) => {
+      const selected = opt.id === value ? " selected" : "";
+      return `<option value="${escapeHtml(opt.id)}"${selected}>${escapeHtml(opt.label)}</option>`;
+    })
+    .join("");
+  return `<select ${dataAttrs(node)} class="${cls(node)}">${opts}</select>`;
+});
+
+registerWidget("slider", (node) => {
+  const min = Number(node.props.min ?? 0);
+  const max = Number(node.props.max ?? 100);
+  const step = Number(node.props.step ?? 1);
+  const value = Number(node.props.value ?? min);
+  const label = node.props.label
+    ? `<span class="uw-slider-label">${escapeHtml(String(node.props.label))}</span>`
+    : "";
+  return `<label ${dataAttrs(node)} class="${cls(node, "uw-slider")}">${label}<input type="range" min="${min}" max="${max}" step="${step}" value="${value}" /><span class="uw-slider-value">${value}</span></label>`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];

@@ -41,6 +41,10 @@ const VIEWPORT_CSS = `
   .uw-form { display: flex; flex-direction: column; gap: 10px; }
   .uw-form .theme-btn { align-self: flex-start; }
   .uw-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .uw-select { align-self: flex-start; min-width: 160px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font: inherit; background: #fff; color: inherit; }
+  .uw-slider { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .uw-slider input[type=range] { flex: 1; }
+  .uw-slider-value { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
   body[data-theme="win95"] .uw-window-chrome { border-radius: 0; border: 2px outset #fff; }
   body[data-theme="win95"] .uw-titlebar { color: #fff; }
 `;

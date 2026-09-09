@@ -1,0 +1,15 @@
+{
+  "name": "settings-theme-select",
+  "description": "Theme select widget updates meta.theme via reflex",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/widgets/theme-select", "exists": true }
+    },
+    {
+      "event": { "type": "input", "targetId": "theme-select", "value": "dark" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "reflex"
+    }
+  ]
+}

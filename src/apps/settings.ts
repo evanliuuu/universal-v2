@@ -57,7 +57,13 @@ export function settingsWindowPatches(state?: UniversalState): {
         id: "settings-general",
         type: "form",
         props: { className: "settings-form tab-panel-general" },
-        children: ["theme-label", "theme-cupertino", "theme-dark", "theme-win95"],
+        children: [
+          "theme-label",
+          "theme-select",
+          "theme-cupertino",
+          "theme-dark",
+          "theme-win95",
+        ],
       },
     },
     {
@@ -67,6 +73,23 @@ export function settingsWindowPatches(state?: UniversalState): {
         id: "theme-label",
         type: "label",
         props: { text: "Theme", className: "" },
+      },
+    },
+    {
+      op: "add",
+      path: "/widgets/theme-select",
+      value: {
+        id: "theme-select",
+        type: "select",
+        props: {
+          value: state?.meta.theme ?? "cupertino",
+          options: [
+            { id: "cupertino", label: "Cupertino" },
+            { id: "dark", label: "Dark" },
+            { id: "win95", label: "Win95" },
+          ],
+        },
+        behavior: "local",
       },
     },
     {
@@ -106,7 +129,7 @@ export function settingsWindowPatches(state?: UniversalState): {
         id: "settings-system",
         type: "box",
         props: { className: "settings-panel tab-panel-system hidden-tab-panel" },
-        children: ["budget-table", "prefetch-toggle"],
+        children: ["budget-table", "prefetch-toggle", "ui-scale-slider"],
       },
     },
     {
@@ -140,6 +163,22 @@ export function settingsWindowPatches(state?: UniversalState): {
     },
     {
       op: "add",
+      path: "/widgets/ui-scale-slider",
+      value: {
+        id: "ui-scale-slider",
+        type: "slider",
+        props: {
+          label: "UI scale",
+          min: 80,
+          max: 140,
+          step: 10,
+          value: 100,
+        },
+        behavior: "local",
+      },
+    },
+    {
+      op: "add",
       path: "/widgets/desktop/children/-",
       value: rootId,
     },
@@ -151,7 +190,7 @@ export function settingsWindowPatches(state?: UniversalState): {
     {
       op: "add",
       path: "/apps/settings",
-      value: { open: true, activeTab: "general" },
+      value: { open: true, activeTab: "general", uiScale: 100 },
     },
     {
       op: "add",

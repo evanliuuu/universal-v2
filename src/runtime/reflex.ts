@@ -91,6 +91,34 @@ export function tryReflex(
       };
     }
 
+    if (targetId === "theme-select" && typeof event.value === "string") {
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/meta/theme", value: event.value },
+          { op: "replace", path: "/widgets/theme-select/props/value", value: event.value },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/theme-select/props/value", value: event.value },
+        ],
+      };
+    }
+
+    if (targetId === "ui-scale-slider") {
+      const scale = Number(event.value);
+      if (!Number.isFinite(scale)) return empty;
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/widgets/ui-scale-slider/props/value", value: scale },
+          { op: "replace", path: "/apps/settings/uiScale", value: scale },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/ui-scale-slider/props/value", value: scale },
+        ],
+      };
+    }
+
     if (typeof event.value === "string") {
       return {
         handled: true,
@@ -155,12 +183,27 @@ export function tryReflex(
     };
   }
 
-  if (event.type === "click" && targetId?.startsWith("theme-")) {
+  if (
+    event.type === "click" &&
+    targetId?.startsWith("theme-") &&
+    targetId !== "theme-select" &&
+    targetId !== "theme-label"
+  ) {
     const theme = targetId.replace("theme-", "");
+    const patches: JsonPatchOp[] = [
+      { op: "replace", path: "/meta/theme", value: theme },
+    ];
+    if (doc.state.widgets["theme-select"]) {
+      patches.push({
+        op: "replace",
+        path: "/widgets/theme-select/props/value",
+        value: theme,
+      });
+    }
     return {
       handled: true,
-      statePatch: [{ op: "replace", path: "/meta/theme", value: theme }],
-      uiPatch: [],
+      statePatch: patches,
+      uiPatch: patches.filter((op) => op.path.startsWith("/widgets")),
     };
   }
 
