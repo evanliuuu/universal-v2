@@ -31,6 +31,35 @@ export function tryReflex(
     };
   }
 
+  if (event.type === "resize_window" && event.value) {
+    const payload = event.value as {
+      windowId?: string;
+      width?: number;
+      height?: number;
+    };
+    const winId = String(payload.windowId ?? "");
+    const width = Number(payload.width);
+    const height = Number(payload.height);
+    if (!winId || !doc.state.windows[winId]) return empty;
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return empty;
+    return {
+      handled: true,
+      statePatch: [
+        {
+          op: "replace",
+          path: `/windows/${winId}/width`,
+          value: Math.max(280, Math.round(width)),
+        },
+        {
+          op: "replace",
+          path: `/windows/${winId}/height`,
+          value: Math.max(180, Math.round(height)),
+        },
+      ],
+      uiPatch: [],
+    };
+  }
+
   if (event.type !== "click" && event.type !== "input") return empty;
 
   const targetId = event.targetId;
@@ -220,6 +249,54 @@ export function tryReflex(
       uiPatch: [
         { op: "replace", path: "/widgets/files-list/props/selectedId", value: event.value },
         { op: "replace", path: "/widgets/files-preview/props/text", value: body },
+      ],
+    };
+  }
+
+  if (event.type === "click" && targetId === "settings-actions-menu") {
+    if (event.value === "toggle") {
+      const open = !Boolean(widget.props.open);
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/widgets/settings-actions-menu/props/open", value: open },
+          { op: "replace", path: "/apps/settings/actionsMenuOpen", value: open },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/settings-actions-menu/props/open", value: open },
+        ],
+      };
+    }
+    if (event.value === "about") {
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/widgets/settings-actions-menu/props/open", value: false },
+          { op: "replace", path: "/widgets/about-dialog/props/open", value: true },
+          { op: "replace", path: "/apps/settings/aboutOpen", value: true },
+          { op: "replace", path: "/apps/settings/actionsMenuOpen", value: false },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/settings-actions-menu/props/open", value: false },
+          { op: "replace", path: "/widgets/about-dialog/props/open", value: true },
+        ],
+      };
+    }
+  }
+
+  if (
+    event.type === "click" &&
+    targetId === "about-dialog" &&
+    (event.value === "close" || event.value === undefined)
+  ) {
+    return {
+      handled: true,
+      statePatch: [
+        { op: "replace", path: "/widgets/about-dialog/props/open", value: false },
+        { op: "replace", path: "/apps/settings/aboutOpen", value: false },
+      ],
+      uiPatch: [
+        { op: "replace", path: "/widgets/about-dialog/props/open", value: false },
       ],
     };
   }

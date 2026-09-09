@@ -1,4 +1,17 @@
-export type ThemeId = "cupertino" | "dark" | "win95";
+export type ThemeId =
+  | "cupertino"
+  | "dark"
+  | "win95"
+  | "material"
+  | "high-contrast";
+
+export const THEME_IDS: ThemeId[] = [
+  "cupertino",
+  "dark",
+  "win95",
+  "material",
+  "high-contrast",
+];
 
 const BASE = `
   --uw-bg: linear-gradient(135deg, #1a6fa8 0%, #4aadce 50%, #87ceeb 100%);
@@ -33,14 +46,44 @@ const THEMES: Record<ThemeId, string> = {
   --uw-accent: #000080;
   --uw-font: "MS Sans Serif", Tahoma, sans-serif;
 `,
+  material: `
+  --uw-bg: linear-gradient(160deg, #e8eaf6 0%, #c5cae9 45%, #9fa8da 100%);
+  --uw-menubar-bg: #ffffff;
+  --uw-dock-bg: #ffffff;
+  --uw-window-bg: #ffffff;
+  --uw-titlebar-bg: #3f51b5;
+  --uw-text: #212121;
+  --uw-accent: #3f51b5;
+  --uw-font: "Roboto", "Segoe UI", sans-serif;
+`,
+  "high-contrast": `
+  --uw-bg: #000000;
+  --uw-menubar-bg: #000000;
+  --uw-dock-bg: #000000;
+  --uw-window-bg: #000000;
+  --uw-titlebar-bg: #ffff00;
+  --uw-text: #ffffff;
+  --uw-accent: #ffff00;
+  --uw-font: "Segoe UI", Arial, sans-serif;
+`,
 };
 
 export function themeVariables(theme: string): string {
-  const id = (theme in THEMES ? theme : "cupertino") as ThemeId;
+  const id = normalizeTheme(theme);
   return `:root { ${THEMES[id]} }`;
 }
 
 export function normalizeTheme(theme: string): ThemeId {
-  if (theme === "dark" || theme === "win95") return theme;
+  if ((THEME_IDS as string[]).includes(theme)) return theme as ThemeId;
   return "cupertino";
+}
+
+export function themeOptions(): Array<{ id: ThemeId; label: string }> {
+  return [
+    { id: "cupertino", label: "Cupertino" },
+    { id: "dark", label: "Dark" },
+    { id: "win95", label: "Win95" },
+    { id: "material", label: "Material" },
+    { id: "high-contrast", label: "High contrast" },
+  ];
 }

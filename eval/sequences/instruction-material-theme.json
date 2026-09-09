@@ -1,0 +1,11 @@
+{
+  "name": "instruction-material-theme",
+  "description": "NL instruction sets material theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to material theme" },
+      "assert": { "path": "/meta/theme", "eq": "material" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

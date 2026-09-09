@@ -1,0 +1,11 @@
+{
+  "name": "instruction-high-contrast-theme",
+  "description": "NL instruction sets high-contrast theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "use high contrast theme" },
+      "assert": { "path": "/meta/theme", "eq": "high-contrast" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -29,7 +29,7 @@ export async function planLive(
     .map((app) => app.id)
     .join("|");
   const system = `You are the PLANNER for a universal desktop runtime. Output JSON only:
-{ "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "${apps}", "theme": "cupertino"|"dark"|"win95", "tokenLimit": number, "rationale": "..." }
+{ "action": "open_app"|"focus_app"|"set_theme"|"set_budget"|"noop", "app": "${apps}", "theme": "cupertino"|"dark"|"win95"|"material"|"high-contrast", "tokenLimit": number, "rationale": "..." }
 Decide intent from the event. Do NOT emit patches.`;
 
   const result = await openRouterChat({

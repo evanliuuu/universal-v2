@@ -28,7 +28,7 @@ function executorSystemPrompt(): string {
 Given a plan, emit JSON Patch ops only (RFC 6902). Output JSON only:
 { "statePatch": [...], "uiPatch": [...], "rationale": "..." }
 Rules:
-- set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"
+- set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"|"material"|"high-contrast"
 - set_budget: replace /meta/budget/tokenLimit with a positive number
 - focus_app: replace /focus with { windowId: "win-<app>", widgetId: "dock-<app>" }
 - open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>

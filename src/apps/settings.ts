@@ -1,4 +1,5 @@
 import { getBudget, DEFAULT_BUDGET } from "../agent/budget";
+import { themeOptions } from "../themes/index";
 import { JsonPatchOp, UniversalState } from "../protocol/types";
 import { defineApp } from "./registry";
 
@@ -9,6 +10,7 @@ export function settingsWindowPatches(state?: UniversalState): {
   const winId = "win-settings";
   const rootId = "settings-root";
   const budget = state ? getBudget(state) : DEFAULT_BUDGET;
+  const theme = state?.meta.theme ?? "cupertino";
   const statePatch: JsonPatchOp[] = [
     {
       op: "add",
@@ -19,7 +21,7 @@ export function settingsWindowPatches(state?: UniversalState): {
         x: 160,
         y: 100,
         width: 560,
-        height: 420,
+        height: 440,
         rootId,
         minimized: false,
       },
@@ -31,7 +33,7 @@ export function settingsWindowPatches(state?: UniversalState): {
         id: rootId,
         type: "window",
         props: { title: "Settings", windowId: winId },
-        children: ["settings-tabs"],
+        children: ["settings-tabs", "about-dialog"],
       },
     },
     {
@@ -60,9 +62,9 @@ export function settingsWindowPatches(state?: UniversalState): {
         children: [
           "theme-label",
           "theme-select",
-          "theme-cupertino",
-          "theme-dark",
-          "theme-win95",
+          "theme-btn-row",
+          "settings-divider",
+          "settings-actions-menu",
         ],
       },
     },
@@ -82,14 +84,24 @@ export function settingsWindowPatches(state?: UniversalState): {
         id: "theme-select",
         type: "select",
         props: {
-          value: state?.meta.theme ?? "cupertino",
-          options: [
-            { id: "cupertino", label: "Cupertino" },
-            { id: "dark", label: "Dark" },
-            { id: "win95", label: "Win95" },
-          ],
+          value: theme,
+          options: themeOptions(),
         },
         behavior: "local",
+      },
+    },
+    {
+      op: "add",
+      path: "/widgets/theme-btn-row",
+      value: {
+        id: "theme-btn-row",
+        type: "box",
+        props: {
+          layout: "flex",
+          gap: 8,
+          className: "theme-btn-row",
+        },
+        children: ["theme-cupertino", "theme-dark", "theme-win95"],
       },
     },
     {
@@ -124,11 +136,39 @@ export function settingsWindowPatches(state?: UniversalState): {
     },
     {
       op: "add",
+      path: "/widgets/settings-divider",
+      value: {
+        id: "settings-divider",
+        type: "divider",
+        props: {},
+      },
+    },
+    {
+      op: "add",
+      path: "/widgets/settings-actions-menu",
+      value: {
+        id: "settings-actions-menu",
+        type: "menu",
+        props: {
+          label: "Actions",
+          open: false,
+          items: [{ id: "about", label: "About Universal" }],
+        },
+        behavior: "local",
+      },
+    },
+    {
+      op: "add",
       path: "/widgets/settings-system",
       value: {
         id: "settings-system",
         type: "box",
-        props: { className: "settings-panel tab-panel-system hidden-tab-panel" },
+        props: {
+          className: "settings-panel tab-panel-system hidden-tab-panel",
+          layout: "flex",
+          direction: "column",
+          gap: 10,
+        },
         children: ["budget-table", "prefetch-toggle", "ui-scale-slider"],
       },
     },
@@ -179,6 +219,28 @@ export function settingsWindowPatches(state?: UniversalState): {
     },
     {
       op: "add",
+      path: "/widgets/about-dialog",
+      value: {
+        id: "about-dialog",
+        type: "dialog",
+        props: { title: "About", open: false },
+        children: ["about-dialog-body"],
+        behavior: "local",
+      },
+    },
+    {
+      op: "add",
+      path: "/widgets/about-dialog-body",
+      value: {
+        id: "about-dialog-body",
+        type: "text",
+        props: {
+          text: "Universal v2 — desktop UI driven by JSON state and patches.",
+        },
+      },
+    },
+    {
+      op: "add",
       path: "/widgets/desktop/children/-",
       value: rootId,
     },
@@ -190,7 +252,13 @@ export function settingsWindowPatches(state?: UniversalState): {
     {
       op: "add",
       path: "/apps/settings",
-      value: { open: true, activeTab: "general", uiScale: 100 },
+      value: {
+        open: true,
+        activeTab: "general",
+        uiScale: 100,
+        aboutOpen: false,
+        actionsMenuOpen: false,
+      },
     },
     {
       op: "add",

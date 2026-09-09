@@ -1,0 +1,25 @@
+{
+  "name": "settings-about-dialog",
+  "description": "Actions menu opens the about dialog",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/widgets/settings-actions-menu", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "settings-actions-menu", "value": "toggle" },
+      "assert": { "path": "/widgets/settings-actions-menu/props/open", "eq": true },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "click", "targetId": "settings-actions-menu", "value": "about" },
+      "assert": { "path": "/apps/settings/aboutOpen", "eq": true },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "click", "targetId": "about-dialog", "value": "close" },
+      "assert": { "path": "/apps/settings/aboutOpen", "eq": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

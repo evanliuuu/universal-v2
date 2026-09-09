@@ -40,7 +40,17 @@ export function filesWindowPatches(): {
         id: rootId,
         type: "window",
         props: { title: "Files", windowId: winId },
-        children: ["files-list", "files-preview"],
+        children: ["files-scroll", "files-preview"],
+      },
+    },
+    {
+      op: "add",
+      path: "/widgets/files-scroll",
+      value: {
+        id: "files-scroll",
+        type: "scroll-area",
+        props: { maxHeight: 160, className: "files-scroll" },
+        children: ["files-list"],
       },
     },
     {

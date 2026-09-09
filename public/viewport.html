@@ -8,6 +8,7 @@
     <div id="uw-root"></div>
     <script>
       const root = document.getElementById("uw-root");
+      let resizeState = null;
 
       function applyUpdate(el, props, widgetType) {
         if (props.className != null) {
@@ -39,6 +40,14 @@
           const out = el.querySelector(".uw-slider-value");
           if (out) out.textContent = String(props.value);
         }
+        if (widgetType === "menu" && props.open != null) {
+          el.classList.toggle("open", !!props.open);
+          const panel = el.querySelector(".uw-menu-panel");
+          if (panel) panel.hidden = !props.open;
+        }
+        if (widgetType === "dialog" && props.open != null) {
+          el.hidden = !props.open;
+        }
         if (widgetType === "list") {
           const items = props.items ?? [];
           const selected = props.selectedId ?? "";
@@ -67,6 +76,63 @@
             );
             return;
           }
+
+          const closeDialog = e.target.closest('[data-action="close-dialog"]');
+          if (closeDialog) {
+            const dialog = closeDialog.closest("[data-widget-id]");
+            if (dialog) {
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: dialog.dataset.widgetId,
+                  value: "close",
+                  behavior: "local",
+                },
+                "*",
+              );
+            }
+            return;
+          }
+
+          const menuItem = e.target.closest(".uw-menu-item");
+          if (menuItem) {
+            const menu = menuItem.closest("[data-widget-id]");
+            if (menu) {
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: menu.dataset.widgetId,
+                  value: menuItem.dataset.menuItemId,
+                  behavior: menu.dataset.behavior || "local",
+                },
+                "*",
+              );
+            }
+            return;
+          }
+
+          const toggleMenu = e.target.closest('[data-action="toggle-menu"]');
+          if (toggleMenu) {
+            const menu = toggleMenu.closest("[data-widget-id]");
+            if (menu) {
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: menu.dataset.widgetId,
+                  value: "toggle",
+                  behavior: menu.dataset.behavior || "local",
+                },
+                "*",
+              );
+            }
+            return;
+          }
+
+          if (e.target.closest('[data-action="resize-window"]')) return;
+
           const item = e.target.closest(".uw-list-item");
           const el = e.target.closest("[data-widget-id]");
           if (!el) return;
@@ -81,6 +147,61 @@
             },
             "*",
           );
+        });
+
+        document.addEventListener("mousedown", (e) => {
+          const handle = e.target.closest('[data-action="resize-window"]');
+          if (!handle) return;
+          e.preventDefault();
+          const win = handle.closest(".uw-window-chrome");
+          if (!win) return;
+          const rect = win.getBoundingClientRect();
+          resizeState = {
+            windowId: handle.dataset.windowId,
+            startX: e.clientX,
+            startY: e.clientY,
+            startW: rect.width,
+            startH: rect.height,
+          };
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!resizeState) return;
+          const width = Math.max(
+            280,
+            Math.round(resizeState.startW + (e.clientX - resizeState.startX)),
+          );
+          const height = Math.max(
+            180,
+            Math.round(resizeState.startH + (e.clientY - resizeState.startY)),
+          );
+          const win = root.querySelector(
+            `[data-window-id="${resizeState.windowId}"]`,
+          );
+          if (win) {
+            win.style.width = `${width}px`;
+            win.style.height = `${height}px`;
+          }
+          resizeState.width = width;
+          resizeState.height = height;
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!resizeState || resizeState.width == null) {
+            resizeState = null;
+            return;
+          }
+          parent.postMessage(
+            {
+              source: "universal-viewport",
+              type: "resize_window",
+              windowId: resizeState.windowId,
+              width: resizeState.width,
+              height: resizeState.height,
+            },
+            "*",
+          );
+          resizeState = null;
         });
 
         document.addEventListener("input", (e) => {
@@ -153,8 +274,10 @@
               const el = root.querySelector(`[data-widget-id="${patch.id}"]`);
               if (el) el.outerHTML = patch.html;
             } else if (patch.op === "append") {
-              const parent = root.querySelector(`[data-widget-id="${patch.parentId}"]`);
-              if (parent) parent.insertAdjacentHTML("beforeend", patch.html);
+              const parentEl = root.querySelector(
+                `[data-widget-id="${patch.parentId}"]`,
+              );
+              if (parentEl) parentEl.insertAdjacentHTML("beforeend", patch.html);
             } else if (patch.op === "remove") {
               root.querySelector(`[data-widget-id="${patch.id}"]`)?.remove();
             }

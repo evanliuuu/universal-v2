@@ -45,8 +45,26 @@ const VIEWPORT_CSS = `
   .uw-slider { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .uw-slider input[type=range] { flex: 1; }
   .uw-slider-value { min-width: 2.5em; text-align: right; font-variant-numeric: tabular-nums; }
+  .uw-divider { border: none; border-top: 1px solid #ddd; margin: 8px 0; width: 100%; }
+  .uw-scroll-area { overflow: auto; border: 1px solid #e5e5ea; border-radius: 8px; background: rgba(255,255,255,0.4); }
+  .uw-menu { position: relative; display: inline-block; }
+  .uw-menu-trigger { border: 1px solid #ccc; background: #f8f8f8; border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  .uw-menu-panel { position: absolute; top: calc(100% + 4px); left: 0; min-width: 160px; background: var(--uw-window-bg, #fff); border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); padding: 4px; z-index: 20; display: flex; flex-direction: column; gap: 2px; }
+  .uw-menu-panel[hidden] { display: none; }
+  .uw-menu-item { border: none; background: transparent; text-align: left; padding: 8px 10px; border-radius: 6px; cursor: pointer; font: inherit; color: inherit; }
+  .uw-menu-item:hover { background: rgba(0,0,0,0.06); }
+  .uw-dialog-root { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; }
+  .uw-dialog-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
+  .uw-dialog-card { position: relative; min-width: 280px; max-width: 420px; background: var(--uw-window-bg, #fff); color: var(--uw-text, #111); border-radius: 10px; box-shadow: 0 16px 48px rgba(0,0,0,0.28); overflow: hidden; }
+  .uw-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--uw-titlebar-bg, #f0f0f0); }
+  .uw-dialog-close { border: none; background: transparent; font-size: 18px; cursor: pointer; color: inherit; }
+  .uw-dialog-body { padding: 12px; }
+  .uw-resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.25) 50%); }
   body[data-theme="win95"] .uw-window-chrome { border-radius: 0; border: 2px outset #fff; }
   body[data-theme="win95"] .uw-titlebar { color: #fff; }
+  body[data-theme="material"] .uw-titlebar { color: #fff; }
+  body[data-theme="high-contrast"] .uw-window-chrome { border: 2px solid #ffff00; border-radius: 0; }
+  body[data-theme="high-contrast"] .uw-titlebar { color: #000; }
 `;
 
 export { VIEWPORT_CSS };

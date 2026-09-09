@@ -140,6 +140,20 @@ export class UniversalRuntime {
       return;
     }
 
+    if (data.type === "resize_window") {
+      void this.dispatch(
+        createSemanticEvent({
+          type: "resize_window",
+          value: {
+            windowId: data.windowId,
+            width: data.width,
+            height: data.height,
+          },
+        }),
+      );
+      return;
+    }
+
     if (data.type === "click") {
       void this.dispatch(
         createSemanticEvent({

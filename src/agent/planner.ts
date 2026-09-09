@@ -72,8 +72,19 @@ export function parseInstruction(
     }
   }
 
-  if (lower.includes("dark") || lower.includes("win95")) {
-    const theme = lower.includes("win95") ? "win95" : "dark";
+  if (
+    lower.includes("dark") ||
+    lower.includes("win95") ||
+    lower.includes("material") ||
+    lower.includes("high contrast") ||
+    lower.includes("high-contrast")
+  ) {
+    let theme = "dark";
+    if (lower.includes("win95")) theme = "win95";
+    else if (lower.includes("material")) theme = "material";
+    else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
+      theme = "high-contrast";
+    }
     return { action: "set_theme", theme, rationale: text };
   }
 

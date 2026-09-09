@@ -1,0 +1,11 @@
+{
+  "name": "settings-theme-btn-row-layout",
+  "description": "Theme buttons live in a flex layout box",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/widgets/theme-btn-row/props/layout", "eq": "flex" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

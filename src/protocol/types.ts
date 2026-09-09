@@ -53,6 +53,10 @@ export const WidgetTypeSchema = z.enum([
   "checkbox",
   "select",
   "slider",
+  "divider",
+  "scroll-area",
+  "menu",
+  "dialog",
   "window",
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;
@@ -128,6 +132,7 @@ export const SemanticEventSchema = z.object({
     "instruction",
     "open_app",
     "close_window",
+    "resize_window",
   ]),
   targetId: z.string().optional(),
   value: z.unknown().optional(),

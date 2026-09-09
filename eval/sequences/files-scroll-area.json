@@ -1,0 +1,11 @@
+{
+  "name": "files-scroll-area",
+  "description": "Files app mounts a scroll-area around the file list",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-files" },
+      "assert": { "path": "/widgets/files-scroll/type", "eq": "scroll-area" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

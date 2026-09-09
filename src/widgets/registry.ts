@@ -2,7 +2,17 @@ import { WidgetNode, WidgetType } from "../protocol/types";
 
 export type RenderContext = {
   doc: { ui: { rootId: string; widgets: Record<string, WidgetNode> } };
-  windows: Record<string, { x: number; y: number; width: number; height: number; title: string; minimized: boolean }>;
+  windows: Record<
+    string,
+    {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      title: string;
+      minimized: boolean;
+    }
+  >;
 };
 
 export type WidgetRenderer = (
@@ -39,9 +49,34 @@ function dataAttrs(node: WidgetNode): string {
   return `data-widget-id="${node.id}" data-widget-type="${node.type}"${behavior}`;
 }
 
+function layoutStyle(node: WidgetNode): string {
+  const parts: string[] = [];
+  const layout = node.props.layout;
+  if (layout === "flex") {
+    parts.push("display:flex");
+    if (node.props.direction) {
+      parts.push(`flex-direction:${String(node.props.direction)}`);
+    }
+    if (node.props.gap != null) parts.push(`gap:${Number(node.props.gap)}px`);
+    if (node.props.align) parts.push(`align-items:${String(node.props.align)}`);
+    if (node.props.justify) {
+      parts.push(`justify-content:${String(node.props.justify)}`);
+    }
+  }
+  if (layout === "grid") {
+    parts.push("display:grid");
+    const cols = Number(node.props.columns ?? 2);
+    parts.push(`grid-template-columns:repeat(${cols},minmax(0,1fr))`);
+    if (node.props.gap != null) parts.push(`gap:${Number(node.props.gap)}px`);
+  }
+  if (node.props.width != null) parts.push(`width:${node.props.width}`);
+  if (node.props.height != null) parts.push(`height:${node.props.height}`);
+  return parts.length ? ` style="${parts.join(";")}"` : "";
+}
+
 registerWidget("box", (node, _ctx, renderChild) => {
   const kids = (node.children ?? []).map(renderChild).join("");
-  return `<div ${dataAttrs(node)} class="${cls(node)}">${kids}</div>`;
+  return `<div ${dataAttrs(node)} class="${cls(node)}"${layoutStyle(node)}>${kids}</div>`;
 });
 
 registerWidget("text", (node) => {
@@ -51,7 +86,9 @@ registerWidget("text", (node) => {
 
 registerWidget("button", (node) => {
   const label = String(node.props.label ?? "Button");
-  const title = node.props.title ? ` title="${escapeHtml(String(node.props.title))}"` : "";
+  const title = node.props.title
+    ? ` title="${escapeHtml(String(node.props.title))}"`
+    : "";
   return `<button type="button" ${dataAttrs(node)} class="${cls(node)}"${title}>${escapeHtml(label)}</button>`;
 });
 
@@ -72,7 +109,9 @@ registerWidget("label", (node) => {
 });
 
 registerWidget("list", (node) => {
-  const items = (node.props.items as Array<{ id?: string; label?: string } | string>) ?? [];
+  const items =
+    (node.props.items as Array<{ id?: string; label?: string } | string>) ??
+    [];
   const selected = String(node.props.selectedId ?? "");
   const lis = items
     .map((item) => {
@@ -85,7 +124,7 @@ registerWidget("list", (node) => {
   return `<ul ${dataAttrs(node)} class="${cls(node)}">${lis}</ul>`;
 });
 
-registerWidget("tabs", (node, ctx, renderChild) => {
+registerWidget("tabs", (node, _ctx, renderChild) => {
   const tabs = (node.props.tabs as Array<{ id: string; label: string }>) ?? [];
   const active = String(node.props.activeTab ?? tabs[0]?.id ?? "");
   const tabBar = tabs
@@ -96,7 +135,9 @@ registerWidget("tabs", (node, ctx, renderChild) => {
     .join("");
   const panels = (node.children ?? [])
     .map((childId) => {
-      const suffix = childId.includes("-") ? childId.split("-").slice(-1)[0] : childId;
+      const suffix = childId.includes("-")
+        ? childId.split("-").slice(-1)[0]
+        : childId;
       const hidden = suffix !== active ? "hidden-tab-panel" : "";
       return `<div class="uw-tab-panel ${hidden}">${renderChild(childId)}</div>`;
     })
@@ -152,6 +193,51 @@ registerWidget("slider", (node) => {
   return `<label ${dataAttrs(node)} class="${cls(node, "uw-slider")}">${label}<input type="range" min="${min}" max="${max}" step="${step}" value="${value}" /><span class="uw-slider-value">${value}</span></label>`;
 });
 
+registerWidget("divider", (node) => {
+  return `<hr ${dataAttrs(node)} class="${cls(node)}" />`;
+});
+
+registerWidget("scroll-area", (node, _ctx, renderChild) => {
+  const kids = (node.children ?? []).map(renderChild).join("");
+  const maxH = node.props.maxHeight != null
+    ? `max-height:${Number(node.props.maxHeight)}px;`
+    : "max-height:220px;";
+  return `<div ${dataAttrs(node)} class="${cls(node)}" style="overflow:auto;${maxH}">${kids}</div>`;
+});
+
+registerWidget("menu", (node) => {
+  const items =
+    (node.props.items as Array<{ id: string; label: string }>) ?? [];
+  const open = Boolean(node.props.open);
+  const label = escapeHtml(String(node.props.label ?? "Menu"));
+  const list = items
+    .map(
+      (item) =>
+        `<button type="button" class="uw-menu-item" data-menu-item-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button>`,
+    )
+    .join("");
+  return `<div ${dataAttrs(node)} class="${cls(node)}${open ? " open" : ""}">
+    <button type="button" class="uw-menu-trigger" data-action="toggle-menu">${label}</button>
+    <div class="uw-menu-panel"${open ? "" : " hidden"}>${list}</div>
+  </div>`;
+});
+
+registerWidget("dialog", (node, _ctx, renderChild) => {
+  const open = Boolean(node.props.open);
+  const title = escapeHtml(String(node.props.title ?? "Dialog"));
+  const kids = (node.children ?? []).map(renderChild).join("");
+  return `<div ${dataAttrs(node)} class="${cls(node, "uw-dialog-root")}"${open ? "" : " hidden"}>
+    <div class="uw-dialog-backdrop" data-action="close-dialog"></div>
+    <div class="uw-dialog-card" role="dialog" aria-modal="true">
+      <div class="uw-dialog-header">
+        <strong>${title}</strong>
+        <button type="button" class="uw-dialog-close" data-action="close-dialog">×</button>
+      </div>
+      <div class="uw-dialog-body">${kids}</div>
+    </div>
+  </div>`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];
@@ -167,6 +253,7 @@ registerWidget("window", (node, ctx, renderChild) => {
       <div class="uw-window-title">${title}</div>
     </div>
     <div class="uw-window-body">${kids}</div>
+    <div class="uw-resize-handle" data-action="resize-window" data-window-id="${winId}"></div>
   </div>`;
 });
 
