@@ -17,6 +17,7 @@ import {
   SessionPersistence,
 } from "../persistence/event-log";
 import { runAgent, prefetchAgent, AgentMode } from "../agent/loop";
+import { recentEventsFromLog } from "../agent/context-pack";
 import { executionTierForModel, routeModelTier } from "../agent/router";
 import {
   canPrefetch,
@@ -234,6 +235,7 @@ export class UniversalRuntime {
         modelTier,
         state: doc.state,
         event,
+        recentEvents: recentEventsFromLog(this.store.getLog()),
       });
 
       const tokenOps = [
@@ -406,7 +408,12 @@ export class UniversalRuntime {
 
       this.prefetch.markInFlight(key);
       try {
-        const response = await prefetchAgent(this.agentMode, state, event);
+        const response = await prefetchAgent(
+          this.agentMode,
+          state,
+          event,
+          recentEventsFromLog(this.store.getLog()),
+        );
         this.prefetch.set(event, response);
       } catch {
         // Prefetch is best-effort

@@ -12,6 +12,7 @@ import { executePlan } from "./executor";
 import { isLiveExecutorAction } from "./executor-schema";
 import { planMock } from "./planner";
 import { planLive } from "./planner-live";
+import { RecentEventSummary } from "./context-pack";
 import { routeModelTier } from "./router";
 
 export type AgentMode = "mock" | "openrouter" | "live-fixture";
@@ -23,12 +24,19 @@ export async function runAgent(opts: {
   event: SemanticEvent;
   /** Canned model patch payload for live-fixture evals. */
   modelPatches?: unknown;
+  /** Prior events packed into live planner/executor prompts. */
+  recentEvents?: RecentEventSummary[];
 }): Promise<AgentResponse> {
   if (opts.mode === "live-fixture") {
     return runLiveFixtureAgent(opts.state, opts.event, opts.modelTier, opts.modelPatches);
   }
   if (opts.mode === "openrouter") {
-    return runOpenRouterAgent(opts.state, opts.event, opts.modelTier);
+    return runOpenRouterAgent(
+      opts.state,
+      opts.event,
+      opts.modelTier,
+      opts.recentEvents,
+    );
   }
   return mockAgent(opts.state, opts.event, opts.modelTier);
 }
@@ -37,6 +45,7 @@ async function runOpenRouterAgent(
   state: UniversalState,
   event: SemanticEvent,
   modelTier: ModelTier,
+  recentEvents: RecentEventSummary[] = [],
 ): Promise<AgentResponse> {
   if (modelTier === "fast") {
     const plan = planMock(state, event);
@@ -45,10 +54,10 @@ async function runOpenRouterAgent(
     }
   }
 
-  const plan = await planLive(state, event);
+  const plan = await planLive(state, event, recentEvents);
 
   if (isLiveExecutorAction(plan.action)) {
-    const live = await executeLive(plan, state, event);
+    const live = await executeLive(plan, state, event, recentEvents);
     if (live) {
       return {
         ...live.response,
@@ -117,7 +126,8 @@ export async function prefetchAgent(
   mode: AgentMode,
   state: UniversalState,
   event: SemanticEvent,
+  recentEvents: RecentEventSummary[] = [],
 ): Promise<AgentResponse> {
   const modelTier = routeModelTier(event, state);
-  return runAgent({ mode, modelTier, state, event });
+  return runAgent({ mode, modelTier, state, event, recentEvents });
 }

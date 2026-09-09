@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-calendar",
+  "description": "Natural language instruction opens calendar via big tier",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

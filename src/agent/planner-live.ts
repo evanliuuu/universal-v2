@@ -1,7 +1,7 @@
 import { listApps } from "../apps";
 import { AgentPlanSchema } from "./plan-schema";
 import { SemanticEvent, UniversalState } from "../protocol/types";
-import { buildPlannerContext } from "./context-pack";
+import { buildPlannerContext, RecentEventSummary } from "./context-pack";
 import { planMock, AgentPlan } from "./planner";
 import { readEnv } from "./env";
 import { openRouterChat } from "./openrouter";
@@ -18,6 +18,7 @@ function modelForPlanner(): string {
 export async function planLive(
   state: UniversalState,
   event: SemanticEvent,
+  recentEvents: RecentEventSummary[] = [],
 ): Promise<AgentPlan> {
   const apiKey = readEnv("VITE_OPENROUTER_API_KEY");
   if (!apiKey) {
@@ -36,7 +37,10 @@ Decide intent from the event. Do NOT emit patches.`;
     title: "universal-v2-planner",
     model: modelForPlanner(),
     system,
-    user: JSON.stringify({ context: buildPlannerContext(state), event }),
+    user: JSON.stringify({
+      context: buildPlannerContext(state, recentEvents),
+      event,
+    }),
   });
 
   if (!result.ok) {

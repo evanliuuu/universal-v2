@@ -5,7 +5,7 @@ import {
 } from "../protocol/types";
 import { createDocument } from "../state/patch";
 import { safeApplyPatches } from "../state/safe-patch";
-import { buildPlannerContext } from "./context-pack";
+import { buildPlannerContext, RecentEventSummary } from "./context-pack";
 import { readEnv } from "./env";
 import { executePlan } from "./executor";
 import {
@@ -83,6 +83,7 @@ export async function executeLive(
   plan: AgentPlan,
   state: UniversalState,
   event: SemanticEvent,
+  recentEvents: RecentEventSummary[] = [],
 ): Promise<{ response: AgentResponse; source: "live" | "fallback"; error?: string } | null> {
   if (!isLiveExecutorAction(plan.action)) return null;
 
@@ -97,7 +98,7 @@ export async function executeLive(
       system: executorSystemPrompt(),
       user: JSON.stringify({
         plan,
-        context: buildPlannerContext(state),
+        context: buildPlannerContext(state, recentEvents),
         event,
       }),
     });

@@ -1,0 +1,19 @@
+{
+  "name": "instruction-refocus-calendar",
+  "description": "After notes is focused, NL instruction refocuses calendar",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/focus/windowId", "eq": "win-notes" }
+    },
+    {
+      "event": { "type": "instruction", "value": "focus the calendar" },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

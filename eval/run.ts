@@ -11,6 +11,12 @@ import { createSeedState } from "../src/state/seed";
 import { tryReflex } from "../src/runtime/reflex";
 import { createSemanticEvent } from "../src/state/store";
 import { ExecutionTier, SemanticEvent } from "../src/protocol/types";
+import { executePlan } from "../src/agent/executor";
+import { planMock } from "../src/agent/planner";
+import {
+  buildPlannerContext,
+  RecentEventSummary,
+} from "../src/agent/context-pack";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +57,7 @@ async function dispatchStep(
   event: SemanticEvent,
   agentMode: AgentMode,
   modelPatches?: unknown,
+  recentEvents: RecentEventSummary[] = [],
 ): Promise<{ doc: typeof doc; tier: ExecutionTier }> {
   const reflex = tryReflex(doc, event);
   if (reflex.handled) {
@@ -73,6 +80,7 @@ async function dispatchStep(
     state: doc.state,
     event,
     modelPatches,
+    recentEvents,
   });
   const result = safeApplyPatches(doc, response.statePatch, response.uiPatch);
   if (!result.ok) throw new Error(result.error);
@@ -86,6 +94,7 @@ async function runSequence(file: string): Promise<boolean> {
   const agentMode = seq.agentMode ?? "mock";
   const prevKey = process.env.VITE_OPENROUTER_API_KEY;
   const queue = [...(seq.mockResponses ?? [])];
+  const recentEvents: RecentEventSummary[] = [];
 
   if (seq.mockResponses) {
     process.env.VITE_OPENROUTER_API_KEY = "eval-mock";
@@ -106,8 +115,14 @@ async function runSequence(file: string): Promise<boolean> {
         event,
         agentMode,
         step.modelPatches,
+        recentEvents,
       );
       doc = next;
+      recentEvents.push({
+        type: event.type,
+        targetId: event.targetId,
+        value: event.value,
+      });
 
       const actual = getAtPath(doc.state, step.assert.path);
       let ok = false;
@@ -141,12 +156,74 @@ async function runSequence(file: string): Promise<boolean> {
   return passed === seq.steps.length;
 }
 
+function checkPlannerContextPack(): boolean {
+  console.log("\n▶ planner-context-pack");
+  const cases: Array<[string, boolean]> = [];
+
+  const seed = createSeedState();
+  const empty = buildPlannerContext(seed, [
+    { type: "click", targetId: "dock-notes" },
+  ]);
+  cases.push(["seed has no focused window", empty.focus.window === undefined]);
+  cases.push(["seed has no focused widget", empty.focus.widget === undefined]);
+  cases.push(["seed keeps a recent event", empty.recentEvents.length === 1]);
+  cases.push([
+    "seed recent event target",
+    empty.recentEvents[0]?.targetId === "dock-notes",
+  ]);
+
+  const openEvent = createSemanticEvent({
+    type: "instruction",
+    value: "open calendar",
+  });
+  const plan = planMock(seed, openEvent);
+  const response = executePlan(plan, seed);
+  const opened = safeApplyPatches(
+    createDocument(seed),
+    response.statePatch,
+    response.uiPatch,
+  );
+  if (!opened.ok) {
+    console.log("  ✗ could not open calendar for context pack");
+    return false;
+  }
+
+  const overflow: RecentEventSummary[] = [
+    { type: "click", targetId: "dock-files" },
+    { type: "click", targetId: "dock-notes" },
+    { type: "instruction", value: "open calendar" },
+    { type: "click", targetId: "dock-settings" },
+    { type: "instruction", value: "open notes" },
+    { type: "instruction", value: "focus the calendar" },
+  ];
+  const ctx = buildPlannerContext(opened.doc.state, overflow);
+  cases.push(["calendar window id", ctx.focus.window?.id === "win-calendar"]);
+  cases.push(["calendar window title", ctx.focus.window?.title === "Calendar"]);
+  cases.push(["dock widget type", ctx.focus.widget?.type === "button"]);
+  cases.push(["dock widget label", ctx.focus.widget?.label === "📅"]);
+  cases.push(["dock widget title", ctx.focus.widget?.title === "Calendar"]);
+  cases.push(["recent events capped at 5", ctx.recentEvents.length === 5]);
+  cases.push([
+    "recent events are the last 5",
+    ctx.recentEvents[0]?.targetId === "dock-notes" &&
+      ctx.recentEvents[4]?.value === "focus the calendar",
+  ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = true;
+let allOk = checkPlannerContextPack();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;
