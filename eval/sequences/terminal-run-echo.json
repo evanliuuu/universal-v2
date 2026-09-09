@@ -1,0 +1,23 @@
+{
+  "name": "terminal-run-echo",
+  "description": "Terminal app reflex runs echo via App SDK",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-terminal" },
+      "assert": { "path": "/widgets/terminal-input", "exists": true }
+    },
+    {
+      "event": { "type": "input", "targetId": "terminal-input", "value": "echo hello" },
+      "assert": { "path": "/widgets/terminal-input/props/value", "eq": "echo hello" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "click", "targetId": "terminal-run" },
+      "assert": {
+        "path": "/apps/terminal/history",
+        "eq": "Universal terminal\nType help, then Run.\n$ echo hello\nhello\n"
+      },
+      "expectTier": "reflex"
+    }
+  ]
+}

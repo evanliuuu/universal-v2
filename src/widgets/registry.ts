@@ -238,6 +238,26 @@ registerWidget("dialog", (node, _ctx, renderChild) => {
   </div>`;
 });
 
+registerWidget("icon", (node) => {
+  const glyph = escapeHtml(
+    String(node.props.glyph ?? node.props.emoji ?? node.props.label ?? "•"),
+  );
+  const size = Number(node.props.size ?? 24);
+  const title = node.props.title
+    ? ` title="${escapeHtml(String(node.props.title))}"`
+    : "";
+  return `<span ${dataAttrs(node)} class="${cls(node)}"${title} style="font-size:${size}px;line-height:1;display:inline-flex;align-items:center;justify-content:center">${glyph}</span>`;
+});
+
+registerWidget("image", (node) => {
+  const src = escapeHtml(String(node.props.src ?? ""));
+  const alt = escapeHtml(String(node.props.alt ?? ""));
+  const width = node.props.width != null ? ` width="${Number(node.props.width)}"` : "";
+  const height =
+    node.props.height != null ? ` height="${Number(node.props.height)}"` : "";
+  return `<img ${dataAttrs(node)} class="${cls(node)}" src="${src}" alt="${alt}"${width}${height} />`;
+});
+
 registerWidget("window", (node, ctx, renderChild) => {
   const winId = String(node.props.windowId ?? "");
   const win = ctx.windows[winId];

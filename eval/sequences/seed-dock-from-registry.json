@@ -6,7 +6,7 @@
       "event": { "type": "instruction", "value": "do nothing" },
       "assert": {
         "path": "/desktop/dock",
-        "eq": ["dock-calendar", "dock-notes", "dock-settings", "dock-files"]
+        "eq": ["dock-calendar", "dock-notes", "dock-settings", "dock-files", "dock-terminal"]
       },
       "expectTier": "agent-big"
     }

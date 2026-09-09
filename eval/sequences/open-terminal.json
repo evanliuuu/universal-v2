@@ -1,0 +1,19 @@
+{
+  "name": "open-terminal",
+  "description": "Dock click opens the terminal app via App SDK",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-terminal" },
+      "assert": { "path": "/windows/win-terminal", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "noop" },
+      "assert": { "path": "/widgets/terminal-icon", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "noop" },
+      "assert": { "path": "/widgets/terminal-icon/type", "eq": "icon" }
+    }
+  ]
+}

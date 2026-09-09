@@ -59,6 +59,8 @@ const VIEWPORT_CSS = `
   .uw-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--uw-titlebar-bg, #f0f0f0); }
   .uw-dialog-close { border: none; background: transparent; font-size: 18px; cursor: pointer; color: inherit; }
   .uw-dialog-body { padding: 12px; }
+  .uw-icon { user-select: none; }
+  .uw-image { max-width: 100%; border-radius: 8px; display: block; object-fit: cover; }
   .uw-resize-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.25) 50%); }
   body[data-theme="win95"] .uw-window-chrome { border-radius: 0; border: 2px outset #fff; }
   body[data-theme="win95"] .uw-titlebar { color: #fff; }

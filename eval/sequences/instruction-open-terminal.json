@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-terminal",
+  "description": "Natural language opens terminal without core edits",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open the terminal" },
+      "assert": { "path": "/windows/win-terminal", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

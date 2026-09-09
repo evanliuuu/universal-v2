@@ -77,14 +77,16 @@ export function parseInstruction(
     lower.includes("win95") ||
     lower.includes("material") ||
     lower.includes("high contrast") ||
-    lower.includes("high-contrast")
+    lower.includes("high-contrast") ||
+    lower.includes("custom theme") ||
+    /\bcustom\b/.test(lower)
   ) {
     let theme = "dark";
     if (lower.includes("win95")) theme = "win95";
     else if (lower.includes("material")) theme = "material";
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";
-    }
+    } else if (lower.includes("custom")) theme = "custom";
     return { action: "set_theme", theme, rationale: text };
   }
 

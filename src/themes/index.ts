@@ -3,7 +3,8 @@ export type ThemeId =
   | "dark"
   | "win95"
   | "material"
-  | "high-contrast";
+  | "high-contrast"
+  | "custom";
 
 export const THEME_IDS: ThemeId[] = [
   "cupertino",
@@ -11,6 +12,7 @@ export const THEME_IDS: ThemeId[] = [
   "win95",
   "material",
   "high-contrast",
+  "custom",
 ];
 
 const BASE = `
@@ -66,11 +68,24 @@ const THEMES: Record<ThemeId, string> = {
   --uw-accent: #ffff00;
   --uw-font: "Segoe UI", Arial, sans-serif;
 `,
+  custom: BASE,
 };
 
-export function themeVariables(theme: string): string {
+function formatThemeVars(vars: Record<string, string> | undefined): string {
+  if (!vars) return "";
+  return Object.entries(vars)
+    .filter(([key, value]) => key.startsWith("--") && typeof value === "string")
+    .map(([key, value]) => `${key}: ${value};`)
+    .join("\n  ");
+}
+
+export function themeVariables(
+  theme: string,
+  themeVars?: Record<string, string>,
+): string {
   const id = normalizeTheme(theme);
-  return `:root { ${THEMES[id]} }`;
+  const overrides = formatThemeVars(themeVars);
+  return `:root { ${THEMES[id]}\n  ${overrides} }`;
 }
 
 export function normalizeTheme(theme: string): ThemeId {
@@ -85,5 +100,14 @@ export function themeOptions(): Array<{ id: ThemeId; label: string }> {
     { id: "win95", label: "Win95" },
     { id: "material", label: "Material" },
     { id: "high-contrast", label: "High contrast" },
+    { id: "custom", label: "Custom" },
   ];
 }
+
+export const ACCENT_OPTIONS = [
+  { id: "#007aff", label: "Blue" },
+  { id: "#34c759", label: "Green" },
+  { id: "#ff9500", label: "Orange" },
+  { id: "#af52de", label: "Purple" },
+  { id: "#ff3b30", label: "Red" },
+];

@@ -1,11 +1,27 @@
-import { CompiledHandler, JsonPatchOp, UniversalState } from "../protocol/types";
+import { CompiledHandler, JsonPatchOp, SemanticEvent, UniversalState } from "../protocol/types";
+import type { UniversalDocument } from "../state/patch";
 
 export type AppPatches = {
   statePatch: JsonPatchOp[];
   uiPatch: JsonPatchOp[];
 };
 
-/** Declarative app registration — add apps without editing the runtime core. */
+export type AppReflexResult = {
+  handled: boolean;
+  statePatch: JsonPatchOp[];
+  uiPatch: JsonPatchOp[];
+};
+
+/** Per-app local event handlers — keeps app logic out of the core runtime. */
+export type AppReflex = (
+  doc: UniversalDocument,
+  event: SemanticEvent,
+) => AppReflexResult | null;
+
+/**
+ * Declarative app registration.
+ * Prefer `open` + optional `reflex` / `handlers` so new apps don't touch core files.
+ */
 export type AppDefinition = {
   id: string;
   title: string;
@@ -17,5 +33,8 @@ export type AppDefinition = {
   aliases?: string[];
   /** Produce open-window patches from current state. */
   open: (state?: UniversalState) => AppPatches;
+  /** Compiled handlers merged into state.handlers when the app opens. */
   handlers?: CompiledHandler[];
+  /** App-local reflex reducers. */
+  reflex?: AppReflex;
 };

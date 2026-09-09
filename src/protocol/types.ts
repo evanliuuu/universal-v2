@@ -57,6 +57,8 @@ export const WidgetTypeSchema = z.enum([
   "scroll-area",
   "menu",
   "dialog",
+  "icon",
+  "image",
   "window",
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;
@@ -95,6 +97,7 @@ export type WindowState = z.infer<typeof WindowStateSchema>;
 export const UniversalStateSchema = z.object({
   meta: z.object({
     theme: z.string().default("cupertino"),
+    themeVars: z.record(z.string()).default({}),
     locale: z.string().default("en"),
     version: z.number().default(1),
     budget: z

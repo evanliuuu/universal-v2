@@ -48,6 +48,19 @@
         if (widgetType === "dialog" && props.open != null) {
           el.hidden = !props.open;
         }
+        if (widgetType === "icon") {
+          if (props.glyph != null || props.emoji != null || props.label != null) {
+            el.textContent = String(props.glyph ?? props.emoji ?? props.label ?? "•");
+          }
+          if (props.size != null) el.style.fontSize = `${Number(props.size)}px`;
+          if (props.title != null) el.title = String(props.title);
+        }
+        if (widgetType === "image") {
+          if (props.src != null) el.setAttribute("src", String(props.src));
+          if (props.alt != null) el.setAttribute("alt", String(props.alt));
+          if (props.width != null) el.setAttribute("width", String(props.width));
+          if (props.height != null) el.setAttribute("height", String(props.height));
+        }
         if (widgetType === "list") {
           const items = props.items ?? [];
           const selected = props.selectedId ?? "";

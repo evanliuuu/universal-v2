@@ -108,10 +108,6 @@ export function filesWindowPatches(): {
   return { statePatch, uiPatch };
 }
 
-export function filesContents(): Record<string, string> {
-  return FILES;
-}
-
 defineApp({
   id: "files",
   title: "Files",
@@ -121,4 +117,43 @@ defineApp({
   dockTitle: "Files",
   aliases: ["file"],
   open: () => filesWindowPatches(),
+  reflex: (_doc, event) => {
+    if (
+      event.type !== "click" ||
+      event.targetId !== "files-list" ||
+      typeof event.value !== "string"
+    ) {
+      return null;
+    }
+    const body = FILES[event.value];
+    if (!body) return null;
+    return {
+      handled: true,
+      statePatch: [
+        {
+          op: "replace",
+          path: "/widgets/files-list/props/selectedId",
+          value: event.value,
+        },
+        {
+          op: "replace",
+          path: "/widgets/files-preview/props/text",
+          value: body,
+        },
+        { op: "replace", path: "/apps/files/selected", value: event.value },
+      ],
+      uiPatch: [
+        {
+          op: "replace",
+          path: "/widgets/files-list/props/selectedId",
+          value: event.value,
+        },
+        {
+          op: "replace",
+          path: "/widgets/files-preview/props/text",
+          value: body,
+        },
+      ],
+    };
+  },
 });

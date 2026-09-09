@@ -19,6 +19,7 @@ export class ViewportBridge {
   private driftEvents = 0;
   private lastDriftReason?: string;
   private currentTheme = "cupertino";
+  private currentThemeVars = "";
 
   mount(iframe: HTMLIFrameElement, doc: UniversalDocument) {
     this.iframe = iframe;
@@ -36,6 +37,8 @@ export class ViewportBridge {
     this.ready = false;
     this.driftEvents = 0;
     this.lastDriftReason = undefined;
+    this.currentTheme = "cupertino";
+    this.currentThemeVars = "";
     if (this.iframe) this.iframe.src = "about:blank";
   }
 
@@ -77,11 +80,15 @@ export class ViewportBridge {
     }
 
     const theme = normalizeTheme(doc.state.meta.theme);
-    const themeChanged = theme !== this.currentTheme;
+    const themeVars = doc.state.meta.themeVars ?? {};
+    const themeVarsKey = JSON.stringify(themeVars);
+    const themeChanged =
+      theme !== this.currentTheme || themeVarsKey !== this.currentThemeVars;
     if (themeChanged) forceFull = true;
     this.currentTheme = theme;
+    this.currentThemeVars = themeVarsKey;
 
-    const css = `${VIEWPORT_CSS}\n${themeVariables(theme)}`;
+    const css = `${VIEWPORT_CSS}\n${themeVariables(theme, themeVars)}`;
 
     if (!this.prevWidgets || forceFull) {
       this.post({

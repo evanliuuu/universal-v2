@@ -74,6 +74,7 @@ export function createSeedState(): UniversalState {
   return {
     meta: {
       theme: "cupertino",
+      themeVars: {},
       locale: "en",
       version: 2,
       budget: {

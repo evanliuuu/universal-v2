@@ -1,0 +1,14 @@
+{
+  "name": "settings-about-media",
+  "description": "About dialog includes icon and image widgets",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/widgets/about-icon/type", "eq": "icon" }
+    },
+    {
+      "event": { "type": "instruction", "value": "noop" },
+      "assert": { "path": "/widgets/about-mark/type", "eq": "image" }
+    }
+  ]
+}

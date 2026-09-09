@@ -22,5 +22,6 @@ Copy `.env.example` → `.env` if you want OpenRouter or websocket sync.
 ## Notes
 
 - Widgets live under `src/widgets/`
-- Apps register via `src/apps/`
+- Apps register via `defineApp({ open, reflex?, handlers? })` in `src/apps/` — new apps shouldn't need core runtime edits
+- Themes include cupertino, dark, win95, material, high-contrast, and custom CSS vars (`meta.themeVars`)
 - Eval sequences are in `eval/sequences/`

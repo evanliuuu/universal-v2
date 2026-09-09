@@ -1,0 +1,24 @@
+{
+  "name": "settings-custom-accent",
+  "description": "Accent select sets custom theme CSS vars",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-settings" },
+      "assert": { "path": "/widgets/accent-select", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "tab-system" },
+      "assert": { "path": "/apps/settings/activeTab", "eq": "system" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "input", "targetId": "accent-select", "value": "#34c759" },
+      "assert": { "path": "/meta/themeVars/--uw-accent", "eq": "#34c759" },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "instruction", "value": "noop" },
+      "assert": { "path": "/meta/theme", "eq": "custom" }
+    }
+  ]
+}

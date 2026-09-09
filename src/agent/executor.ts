@@ -12,7 +12,27 @@ export function executePlan(
       if (!plan.app) break;
       const app = getApp(plan.app);
       if (!app) break;
-      return { ...app.open(state), rationale: plan.rationale };
+      const patches = app.open(state);
+      const handlerOps =
+        app.handlers?.flatMap((handler) => [
+          {
+            op: "add" as const,
+            path: `/handlers/${app.id}-${handler.match.type}-${handler.match.targetId ?? "any"}`,
+            value: handler,
+          },
+        ]) ?? [];
+      // Prefer handlers already embedded in open(); only add missing ones.
+      const existing = new Set(
+        patches.statePatch
+          .filter((op) => op.path.startsWith("/handlers/"))
+          .map((op) => op.path),
+      );
+      const extra = handlerOps.filter((op) => !existing.has(op.path));
+      return {
+        statePatch: [...patches.statePatch, ...extra],
+        uiPatch: patches.uiPatch,
+        rationale: plan.rationale,
+      };
     }
     case "focus_app": {
       if (!plan.app) break;

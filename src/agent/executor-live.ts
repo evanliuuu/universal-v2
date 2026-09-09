@@ -28,11 +28,12 @@ function executorSystemPrompt(): string {
 Given a plan, emit JSON Patch ops only (RFC 6902). Output JSON only:
 { "statePatch": [...], "uiPatch": [...], "rationale": "..." }
 Rules:
-- set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"|"material"|"high-contrast"
+- set_theme: replace /meta/theme with "cupertino"|"dark"|"win95"|"material"|"high-contrast"|"custom"
+- optional theme accents: replace /meta/themeVars with { "--uw-accent": "#hex" } when using custom
 - set_budget: replace /meta/budget/tokenLimit with a positive number
 - focus_app: replace /focus with { windowId: "win-<app>", widgetId: "dock-<app>" }
 - open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
-- Prefer small valid patches. Widget types: box, text, label, button, input, list, tabs, table, form, checkbox, window
+- Prefer small valid patches. Widget types: box, text, label, button, input, list, tabs, table, form, checkbox, select, slider, divider, scroll-area, menu, dialog, icon, image, window
 - uiPatch may be [] if widgets are included in statePatch`;
 }
 

@@ -1,0 +1,11 @@
+{
+  "name": "instruction-custom-theme",
+  "description": "Instruction selects the custom theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to the custom theme" },
+      "assert": { "path": "/meta/theme", "eq": "custom" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

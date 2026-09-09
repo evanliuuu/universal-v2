@@ -136,4 +136,78 @@ defineApp({
   dockLabel: "📅",
   dockTitle: "Calendar",
   open: () => calendarWindowPatches(),
+  reflex: (doc, event) => {
+    if (event.type !== "click" || !event.targetId) return null;
+    const targetId = event.targetId;
+    const widget = doc.state.widgets[targetId];
+    if (!widget || widget.behavior !== "local") return null;
+
+    if (targetId === "day-15") {
+      const selected = (widget.props.className as string)?.includes("selected");
+      const nextClass = selected ? "day-cell" : "day-cell selected";
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: `/widgets/${targetId}/props/className`, value: nextClass },
+          {
+            op: "replace",
+            path: "/apps/calendar/selectedDate",
+            value: selected ? null : "2026-08-15",
+          },
+        ],
+        uiPatch: [
+          { op: "replace", path: `/widgets/${targetId}/props/className`, value: nextClass },
+        ],
+      };
+    }
+
+    if (targetId === "cal-prev" || targetId === "cal-next") {
+      const label = doc.state.widgets["cal-label"];
+      const text = String(label?.props.text ?? "August 2026");
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const match = text.match(/^(\w+)\s+(\d{4})$/);
+      let month = 7;
+      let year = 2026;
+      if (match) {
+        month = months.indexOf(match[1]);
+        year = Number(match[2]);
+      }
+      if (targetId === "cal-prev") month -= 1;
+      else month += 1;
+      if (month < 0) {
+        month = 11;
+        year -= 1;
+      }
+      if (month > 11) {
+        month = 0;
+        year += 1;
+      }
+      const next = `${months[month]} ${year}`;
+      return {
+        handled: true,
+        statePatch: [
+          { op: "replace", path: "/widgets/cal-label/props/text", value: next },
+          { op: "replace", path: "/apps/calendar/view", value: "month" },
+        ],
+        uiPatch: [
+          { op: "replace", path: "/widgets/cal-label/props/text", value: next },
+        ],
+      };
+    }
+
+    return null;
+  },
 });
