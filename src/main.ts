@@ -3,12 +3,16 @@ import { createSeedState } from "./state/seed";
 import { RuntimeStore } from "./state/store";
 import { UniversalRuntime, tierLabel } from "./runtime/loop";
 import { SessionPersistence } from "./persistence/event-log";
-import { createWsSync } from "./transport/ws-sync";
+import {
+  createRemoteSession,
+  createWsSync,
+} from "./transport/ws-sync";
 import {
   buildSessionExport,
   downloadSessionJson,
   parseSessionImport,
 } from "./persistence/export";
+import { buildShareQuery, parseShareParams } from "./sync/auth";
 
 const eventLogEl = document.getElementById("event-log")!;
 const stateViewEl = document.getElementById("state-view")!;
@@ -22,26 +26,55 @@ const resetBtn = document.getElementById("reset-btn")!;
 const clearDbBtn = document.getElementById("clear-db-btn")!;
 const replayBtn = document.getElementById("replay-btn")!;
 const exportBtn = document.getElementById("export-btn")!;
+const shareBtn = document.getElementById("share-btn")!;
 const importInput = document.getElementById("import-input") as HTMLInputElement;
 const instructBtn = document.getElementById("instruct-btn")!;
 const instructInput = document.getElementById("instruct-input") as HTMLInputElement;
+
+function syncApiBase(): string | null {
+  const explicit = import.meta.env.VITE_SYNC_API_URL as string | undefined;
+  if (explicit) return explicit.replace(/\/$/, "");
+  const ws = import.meta.env.VITE_WS_URL as string | undefined;
+  if (!ws) return null;
+  try {
+    const url = new URL(ws, window.location.href);
+    url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+    url.pathname = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function syncStatus(runtime: UniversalRuntime): string {
+  if (!runtime.getWsConnected()) return "server: local only (idb)";
+  return runtime.getWsEdge()
+    ? "server: cloud edge (wss)"
+    : "server: connected (ws)";
+}
 
 async function boot() {
   const persistence = new SessionPersistence();
   await persistence.init();
 
-  const saved = await persistence.loadLatestSession();
-  const doc = saved
-    ? saved.document
-    : createDocument(createSeedState());
-  const store = new RuntimeStore(doc, saved?.id);
-  if (saved) store.setSeq(saved.seq);
+  const share = parseShareParams(window.location.search);
+  const sessionToken = share.token ?? null;
+  const preferredSessionId = share.sessionId;
+
+  const saved = preferredSessionId
+    ? null
+    : await persistence.loadLatestSession();
+  const doc = saved ? saved.document : createDocument(createSeedState());
+  const store = new RuntimeStore(doc, preferredSessionId ?? saved?.id);
+  if (saved && !preferredSessionId) store.setSeq(saved.seq);
   else {
     await persistence.saveSession({
       id: store.getSessionId(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      seq: 0,
+      seq: store.getSeq(),
       document: doc,
     });
   }
@@ -49,13 +82,17 @@ async function boot() {
   const wsSync = createWsSync();
   if (wsSync) {
     try {
-      await wsSync.connect();
+      await wsSync.connect({
+        sessionId: store.getSessionId(),
+        token: sessionToken ?? undefined,
+      });
     } catch {
       // Optional server — IndexedDB remains local source of truth
     }
   }
 
   const runtime = new UniversalRuntime(store, iframe, persistence, wsSync);
+  runtime.setSessionToken(sessionToken);
 
   function paint() {
     const log = store.getLog();
@@ -75,9 +112,7 @@ async function boot() {
     sessionInfoEl.textContent = `session ${store.getSessionId().slice(0, 8)}… · seq ${store.getSeq()}`;
     statsEl.textContent =
       `tokens ${budget.tokensUsed}/${budget.tokenLimit} · prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached · drift recoveries ${drift.events}`;
-    serverEl.textContent = runtime.getWsConnected()
-      ? "server: connected (ws)"
-      : "server: local only (idb)";
+    serverEl.textContent = syncStatus(runtime);
 
     const err = runtime.getLastError();
     errorEl.textContent = err ?? "";
@@ -88,6 +123,14 @@ async function boot() {
   store.subscribe(paint);
   paint();
   runtime.render();
+
+  if (wsSync?.connected && sessionToken) {
+    wsSync.pushSnapshot(
+      store.getSessionId(),
+      store.getSeq(),
+      store.getDocument(),
+    );
+  }
 
   agentModeSelect.addEventListener("change", () => {
     runtime.setAgentMode(agentModeSelect.value as "mock" | "openrouter");
@@ -117,6 +160,44 @@ async function boot() {
         events,
       });
       downloadSessionJson(payload);
+    })();
+  });
+
+  shareBtn.addEventListener("click", () => {
+    void (async () => {
+      try {
+        let token = runtime.getSessionToken();
+        let sessionId = store.getSessionId();
+        const base = syncApiBase();
+        if (!token) {
+          if (!base) {
+            errorEl.textContent =
+              "Share needs a sync server (set VITE_WS_URL / VITE_SYNC_API_URL)";
+            errorEl.hidden = false;
+            return;
+          }
+          const created = await createRemoteSession(base);
+          token = created.token;
+          sessionId = created.sessionId;
+          runtime.setSessionToken(token);
+          store.newSession(store.getDocument(), sessionId);
+          if (wsSync?.connected) {
+            wsSync.join(sessionId, token);
+          } else if (wsSync) {
+            await wsSync.connect({ sessionId, token });
+          }
+        }
+        const q = buildShareQuery(sessionId, token);
+        const url = `${window.location.origin}${window.location.pathname}?${q}`;
+        history.replaceState(null, "", `?${q}`);
+        wsSync?.pushSnapshot(sessionId, store.getSeq(), store.getDocument());
+        await navigator.clipboard.writeText(url);
+        serverEl.textContent = `share link copied · ${syncStatus(runtime)}`;
+      } catch (error) {
+        errorEl.textContent =
+          error instanceof Error ? error.message : "Share failed";
+        errorEl.hidden = false;
+      }
     })();
   });
 

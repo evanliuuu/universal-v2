@@ -1,0 +1,14 @@
+name = "universal-v2"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+# Optional: set UNIVERSAL_API_SECRET in the dashboard / .dev.vars
+
+[[durable_objects.bindings]]
+name = "SESSIONS"
+class_name = "SessionDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["SessionDurableObject"]

@@ -3,3 +3,6 @@ dist
 .env
 *.local
 data/
+cloud/node_modules
+cloud/.wrangler
+cloud/.dev.vars

@@ -2,6 +2,7 @@ import {
   AgentResponse,
   AppliedPatch,
   ExecutionTier,
+  JsonPatchOp,
   SemanticEvent,
 } from "../protocol/types";
 import { eventKey } from "../protocol/messages";
@@ -33,7 +34,8 @@ import { tryCompiled } from "./compiled";
 import { mountViewport } from "./renderer";
 import { viewportBridge } from "./viewport-bridge";
 import { replaySession, ReplayStep } from "./replay";
-import { WsSync } from "../transport/ws-sync";
+import { decideRemoteApply } from "../sync/conflict";
+import { SyncInboundMessage, WsSync } from "../transport/ws-sync";
 
 export type { AgentMode };
 
@@ -47,6 +49,8 @@ export class UniversalRuntime {
   private lastError: string | null = null;
   private onStats?: () => void;
   private wsSync: WsSync | null;
+  private applyingRemote = false;
+  private sessionToken: string | null = null;
 
   constructor(
     store: RuntimeStore,
@@ -58,7 +62,114 @@ export class UniversalRuntime {
     this.iframe = iframe;
     this.persistence = persistence;
     this.wsSync = wsSync;
+    this.wsSync?.setHandler((msg) => {
+      void this.onSyncMessage(msg);
+    });
     window.addEventListener("message", (e) => this.onViewportMessage(e));
+  }
+
+  setSessionToken(token: string | null) {
+    this.sessionToken = token;
+  }
+
+  getSessionToken() {
+    return this.sessionToken;
+  }
+
+  /** Apply authoritative remote state without echoing back to the server. */
+  async applyRemoteSnapshot(seq: number, document: UniversalDocument) {
+    const decision = decideRemoteApply(seq, this.store.getSeq(), "snapshot");
+    if (!decision.accept) return false;
+    this.applyingRemote = true;
+    try {
+      this.store.setDocument(document);
+      this.store.setSeq(seq);
+      await this.persistence.saveSession({
+        id: this.store.getSessionId(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        seq,
+        document: cloneDocument(document),
+      });
+      this.render();
+      this.onStats?.();
+      return true;
+    } finally {
+      this.applyingRemote = false;
+    }
+  }
+
+  async applyRemoteDelta(
+    seq: number,
+    statePatch: JsonPatchOp[],
+    uiPatch: JsonPatchOp[],
+  ) {
+    const decision = decideRemoteApply(seq, this.store.getSeq(), "delta");
+    if (!decision.accept) return false;
+    this.applyingRemote = true;
+    try {
+      const result = safeApplyPatches(
+        this.store.getDocument(),
+        statePatch,
+        uiPatch,
+      );
+      if (!result.ok) {
+        this.lastError = result.error;
+        return false;
+      }
+      this.store.setDocument(result.doc);
+      this.store.setSeq(seq);
+      this.render();
+      this.onStats?.();
+      return true;
+    } finally {
+      this.applyingRemote = false;
+    }
+  }
+
+  private async onSyncMessage(msg: SyncInboundMessage) {
+    if (msg.type === "REJECTED") {
+      this.lastError = `sync rejected: ${msg.reason ?? "unknown"} (server seq ${msg.serverSeq ?? "?"})`;
+      if (msg.snapshot?.state && msg.snapshot?.ui) {
+        await this.applyRemoteSnapshot(msg.serverSeq ?? 0, {
+          state: msg.snapshot.state as UniversalDocument["state"],
+          ui: msg.snapshot.ui as UniversalDocument["ui"],
+        });
+      }
+      this.onStats?.();
+      return;
+    }
+
+    if (msg.type === "JOIN_OK" && msg.snapshot?.state && msg.snapshot?.ui) {
+      await this.applyRemoteSnapshot(msg.serverSeq ?? 0, {
+        state: msg.snapshot.state as UniversalDocument["state"],
+        ui: msg.snapshot.ui as UniversalDocument["ui"],
+      });
+      return;
+    }
+
+    if (
+      msg.type === "STATE_SNAPSHOT" &&
+      msg.state &&
+      msg.ui &&
+      typeof msg.seq === "number"
+    ) {
+      await this.applyRemoteSnapshot(msg.seq, {
+        state: msg.state as UniversalDocument["state"],
+        ui: msg.ui as UniversalDocument["ui"],
+      });
+      return;
+    }
+
+    if (
+      (msg.type === "STATE_DELTA" || msg.type === "UI_DELTA") &&
+      typeof msg.seq === "number" &&
+      Array.isArray(msg.patch)
+    ) {
+      const statePatch = msg.type === "STATE_DELTA" ? msg.patch : [];
+      const uiPatch = msg.type === "UI_DELTA" ? msg.patch : [];
+      await this.applyRemoteDelta(msg.seq, statePatch, uiPatch);
+    }
   }
 
   onStatsChange(fn: () => void) {
@@ -88,6 +199,10 @@ export class UniversalRuntime {
 
   getWsConnected() {
     return this.wsSync?.connected ?? false;
+  }
+
+  getWsEdge() {
+    return this.wsSync?.edge ?? false;
   }
 
   async reset(doc: UniversalDocument) {
@@ -367,20 +482,22 @@ export class UniversalRuntime {
       at: new Date().toISOString(),
     });
 
-    const sessionId = this.store.getSessionId();
-    for (const patch of opts.patches) {
-      if (patch.target === "state") {
-        this.wsSync?.pushStateDelta(sessionId, opts.seq, patch.ops);
-      } else if (patch.target === "ui") {
-        this.wsSync?.pushUiDelta(sessionId, opts.seq, patch.ops);
+    if (!this.applyingRemote) {
+      const sessionId = this.store.getSessionId();
+      for (const patch of opts.patches) {
+        if (patch.target === "state") {
+          this.wsSync?.pushStateDelta(sessionId, opts.seq, patch.ops);
+        } else if (patch.target === "ui") {
+          this.wsSync?.pushUiDelta(sessionId, opts.seq, patch.ops);
+        }
       }
+      this.wsSync?.pushRunFinished(
+        sessionId,
+        opts.seq,
+        opts.tier,
+        opts.latencyMs,
+      );
     }
-    this.wsSync?.pushRunFinished(
-      sessionId,
-      opts.seq,
-      opts.tier,
-      opts.latencyMs,
-    );
 
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
       await this.persistSnapshot();
@@ -398,11 +515,13 @@ export class UniversalRuntime {
       seq: this.store.getSeq(),
       document: cloneDocument(this.store.getDocument()),
     });
-    this.wsSync?.pushSnapshot(
-      this.store.getSessionId(),
-      this.store.getSeq(),
-      cloneDocument(this.store.getDocument()),
-    );
+    if (!this.applyingRemote) {
+      this.wsSync?.pushSnapshot(
+        this.store.getSessionId(),
+        this.store.getSeq(),
+        cloneDocument(this.store.getDocument()),
+      );
+    }
   }
 
   private async schedulePrefetch() {

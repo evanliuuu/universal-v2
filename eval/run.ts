@@ -17,6 +17,8 @@ import {
   buildPlannerContext,
   RecentEventSummary,
 } from "../src/agent/context-pack";
+import { decideDelta, decideSnapshot } from "../src/sync/conflict";
+import { SessionRoom } from "../src/sync/session-room";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -218,12 +220,62 @@ function checkPlannerContextPack(): boolean {
   return passed === cases.length;
 }
 
+function checkSessionConflictPolicy(): boolean {
+  console.log("\n▶ session-conflict-policy");
+  const cases: Array<[string, boolean]> = [];
+
+  cases.push([
+    "delta accepts next seq",
+    decideDelta(1, 0).accept === true && decideDelta(1, 0).reason === "next",
+  ]);
+  cases.push(["delta rejects stale", decideDelta(1, 1).accept === false]);
+  cases.push(["delta rejects gap", decideDelta(3, 1).reason === "gap"]);
+  cases.push([
+    "snapshot catch-up",
+    decideSnapshot(5, 2).accept === true,
+  ]);
+  cases.push(["snapshot stale", decideSnapshot(1, 4).accept === false]);
+
+  const room = new SessionRoom("eval-room", "secret-token", true);
+  const snap = room.applySnapshot("secret-token", 0, {
+    state: { ok: true },
+    ui: { rootId: "x", widgets: {} },
+  });
+  cases.push(["room accepts initial snapshot", snap.ok === true]);
+
+  const stale = room.applyDelta("secret-token", 0);
+  cases.push(["room rejects stale delta", stale.ok === false]);
+
+  const next = room.applyDelta("secret-token", 1);
+  cases.push(["room accepts next delta", next.ok === true && room.seq === 1]);
+
+  const gap = room.applyDelta("secret-token", 4);
+  cases.push(["room rejects gap delta", gap.ok === false]);
+
+  const unauth = room.applyDelta("wrong", 2);
+  cases.push(["room rejects bad token", unauth.ok === false]);
+
+  const newerSnap = room.applySnapshot("secret-token", 2, {
+    state: { ok: true, theme: "dark" },
+    ui: { rootId: "x", widgets: {} },
+  });
+  cases.push(["room snapshot catch-up", newerSnap.ok === true && room.seq === 2]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = checkPlannerContextPack();
+let allOk = checkPlannerContextPack() && checkSessionConflictPolicy();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

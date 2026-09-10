@@ -6,6 +6,8 @@
     "dev": "vite",
     "server": "tsx server/index.ts",
     "dev:all": "npm run server & npm run dev",
+    "cloud:dev": "npm --prefix cloud run dev",
+    "cloud:deploy": "npm --prefix cloud run deploy",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "eval": "tsx eval/run.ts"

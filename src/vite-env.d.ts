@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_OPENROUTER_PLANNER_MODEL?: string;
   readonly VITE_OPENROUTER_EXECUTOR_MODEL?: string;
   readonly VITE_WS_URL?: string;
+  readonly VITE_SYNC_API_URL?: string;
 }
 
 interface ImportMeta {

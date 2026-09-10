@@ -9,6 +9,12 @@ export default defineConfig({
         target: "ws://localhost:8787",
         ws: true,
       },
+      "/sessions": {
+        target: "http://localhost:8787",
+      },
+      "/health": {
+        target: "http://localhost:8787",
+      },
     },
   },
 });
