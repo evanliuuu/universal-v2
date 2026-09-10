@@ -63,23 +63,15 @@ export const WidgetTypeSchema = z.enum([
 ]);
 export type WidgetType = z.infer<typeof WidgetTypeSchema>;
 
-export const WidgetNodeSchema: z.ZodType<WidgetNode> = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    type: WidgetTypeSchema,
-    props: z.record(z.unknown()).default({}),
-    children: z.array(z.string()).optional(),
-    behavior: BehaviorSchema.optional(),
-  }),
-);
+export const WidgetNodeSchema = z.object({
+  id: z.string(),
+  type: WidgetTypeSchema,
+  props: z.record(z.unknown()).default({}),
+  children: z.array(z.string()).optional(),
+  behavior: BehaviorSchema.optional(),
+});
 
-export type WidgetNode = {
-  id: string;
-  type: WidgetType;
-  props: Record<string, unknown>;
-  children?: string[];
-  behavior?: Behavior;
-};
+export type WidgetNode = z.infer<typeof WidgetNodeSchema>;
 
 export const WindowStateSchema = z.object({
   id: z.string(),

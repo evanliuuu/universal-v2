@@ -1,4 +1,5 @@
-import { renderTree, VIEWPORT_CSS } from "./renderer";
+import { renderTree } from "../widgets/registry";
+import { VIEWPORT_CSS } from "./renderer";
 import { UniversalDocument } from "../state/patch";
 import { WidgetNode } from "../protocol/types";
 import { diffWidgets } from "../state/widget-diff";

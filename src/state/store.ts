@@ -61,7 +61,7 @@ export class RuntimeStore {
     this.emit();
   }
 
-  appendLog(entry: Omit<EventLogEntry, "id" | "seq">) {
+  appendLog(entry: Omit<EventLogEntry, "id">) {
     const seq = entry.seq ?? this.seq;
     this.log.unshift({ ...entry, id: this.nextId++, seq });
     if (this.log.length > 100) this.log.length = 100;

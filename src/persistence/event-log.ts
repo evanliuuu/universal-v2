@@ -1,5 +1,10 @@
 import { UniversalDocument } from "../state/patch";
-import { EventLogEntry, SemanticEvent } from "../protocol/types";
+import {
+  EventLogEntry,
+  ExecutionTier,
+  ModelTier,
+  SemanticEvent,
+} from "../protocol/types";
 
 const DB_NAME = "universal-v2";
 const DB_VERSION = 1;
@@ -16,8 +21,8 @@ export type PersistedEventRecord = {
   sessionId: string;
   seq: number;
   event: SemanticEvent;
-  tier: string;
-  modelTier?: string;
+  tier: ExecutionTier;
+  modelTier?: ModelTier;
   prefetchHit?: boolean;
   patches: EventLogEntry["patches"];
   latencyMs?: number;
