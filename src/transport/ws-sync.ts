@@ -43,6 +43,28 @@ export class WsSync {
     this.onMessage = handler;
   }
 
+  /** Close any existing socket and open a new one for this session/token. */
+  async reconnect(opts: { sessionId: string; token: string }): Promise<void> {
+    this.disconnect();
+    await this.connect(opts);
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.onopen = null;
+      this.socket.onmessage = null;
+      this.socket.onerror = null;
+      this.socket.onclose = null;
+      try {
+        this.socket.close();
+      } catch {
+        // ignore
+      }
+    }
+    this.socket = null;
+    this.connected = false;
+  }
+
   connect(opts?: { sessionId?: string; token?: string }): Promise<void> {
     this.sessionId = opts?.sessionId ?? this.sessionId;
     this.token = opts?.token ?? this.token;
@@ -123,7 +145,22 @@ export class WsSync {
 }
 
 export function createWsSync(): WsSync | null {
-  const url = import.meta.env.VITE_WS_URL as string | undefined;
+  let url = import.meta.env.VITE_WS_URL as string | undefined;
+  if (!url) {
+    const api = import.meta.env.VITE_SYNC_API_URL as string | undefined;
+    if (api) {
+      try {
+        const parsed = new URL(api);
+        parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+        parsed.pathname = "/ws";
+        parsed.search = "";
+        parsed.hash = "";
+        url = parsed.toString();
+      } catch {
+        url = undefined;
+      }
+    }
+  }
   if (!url) return null;
   return new WsSync(url);
 }

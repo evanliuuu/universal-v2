@@ -80,11 +80,13 @@ async function boot() {
   }
 
   const wsSync = createWsSync();
-  if (wsSync) {
+  // Only attach to a Durable Object when we have a share token — otherwise the
+  // first write hits a locked room and surfaces a false unauthorized error.
+  if (wsSync && sessionToken && preferredSessionId) {
     try {
       await wsSync.connect({
-        sessionId: store.getSessionId(),
-        token: sessionToken ?? undefined,
+        sessionId: preferredSessionId,
+        token: sessionToken,
       });
     } catch {
       // Optional server — IndexedDB remains local source of truth
@@ -181,18 +183,24 @@ async function boot() {
           sessionId = created.sessionId;
           runtime.setSessionToken(token);
           store.newSession(store.getDocument(), sessionId);
-          if (wsSync?.connected) {
-            wsSync.join(sessionId, token);
-          } else if (wsSync) {
-            await wsSync.connect({ sessionId, token });
-          }
+        }
+        if (wsSync) {
+          // Session DO is keyed by sessionId — must open a fresh socket.
+          await wsSync.reconnect({ sessionId, token });
         }
         const q = buildShareQuery(sessionId, token);
         const url = `${window.location.origin}${window.location.pathname}?${q}`;
         history.replaceState(null, "", `?${q}`);
         wsSync?.pushSnapshot(sessionId, store.getSeq(), store.getDocument());
-        await navigator.clipboard.writeText(url);
-        serverEl.textContent = `share link copied · ${syncStatus(runtime)}`;
+        errorEl.hidden = true;
+        errorEl.textContent = "";
+        try {
+          await navigator.clipboard.writeText(url);
+          serverEl.textContent = `share link copied · ${syncStatus(runtime)}`;
+        } catch {
+          serverEl.textContent = `share ready · ${syncStatus(runtime)} · ${url}`;
+        }
+        paint();
       } catch (error) {
         errorEl.textContent =
           error instanceof Error ? error.message : "Share failed";

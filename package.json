@@ -11,7 +11,8 @@
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "eval": "tsx eval/run.ts"
+    "eval": "tsx eval/run.ts",
+    "smoke:sync": "tsx scripts/smoke-sync.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

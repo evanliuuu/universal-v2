@@ -2,6 +2,7 @@ import { renderTree } from "../widgets/registry";
 import { UniversalDocument } from "../state/patch";
 import { viewportBridge } from "./viewport-bridge";
 
+export { renderTree };
 const VIEWPORT_CSS = `
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; font-family: var(--uw-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif); color: var(--uw-text, #111); }

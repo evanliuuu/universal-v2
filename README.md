@@ -32,6 +32,13 @@ npm run cloud:deploy   # then point VITE_WS_URL / VITE_SYNC_API_URL at the worke
 2. Open the copied `?session=&token=` URL in a second browser.
 3. Both clients sync over `wss://` via a Durable Object — no local Node server required after deploy.
 
+Prove locally without UI:
+
+```bash
+npm run cloud:dev          # wrangler DO on :8787
+npm run smoke:sync         # two WS clients + conflict checks
+```
+
 Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch up when `seq >= serverSeq`. Bad tokens are rejected.
 
 ## Notes
