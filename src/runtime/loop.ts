@@ -491,6 +491,13 @@ export class UniversalRuntime {
           this.wsSync?.pushUiDelta(sessionId, opts.seq, patch.ops);
         }
       }
+      if (opts.prefetchHit) {
+        this.wsSync?.pushPrefetchHit(
+          sessionId,
+          eventKey(opts.event),
+          opts.latencyMs,
+        );
+      }
       this.wsSync?.pushRunFinished(
         sessionId,
         opts.seq,

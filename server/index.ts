@@ -255,7 +255,7 @@ wss.on("connection", (socket, req) => {
         return;
       }
 
-      if (msg.type === "RUN_FINISHED") {
+      if (msg.type === "RUN_FINISHED" || msg.type === "PREFETCH_HIT") {
         broadcast(msg, socket);
         return;
       }

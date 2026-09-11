@@ -17,6 +17,13 @@ import {
   buildPlannerContext,
   RecentEventSummary,
 } from "../src/agent/context-pack";
+import { likelyPrefetchEvents, PrefetchCache } from "../src/agent/prefetch";
+import {
+  encodePrefetchHit,
+  encodeRunFinished,
+  parseAgUiMessage,
+} from "../src/protocol/ag-ui";
+import { eventKey } from "../src/protocol/messages";
 import { decideDelta, decideSnapshot } from "../src/sync/conflict";
 import { SessionRoom } from "../src/sync/session-room";
 
@@ -158,6 +165,64 @@ async function runSequence(file: string): Promise<boolean> {
   return passed === seq.steps.length;
 }
 
+function checkAgUiPrefetchHit(): boolean {
+  console.log("\n▶ ag-ui-prefetch-hit");
+  const cases: Array<[string, boolean]> = [];
+
+  const event = createSemanticEvent({ type: "click", targetId: "dock-notes" });
+  const key = eventKey(event);
+  const encoded = encodePrefetchHit("sess-eval", key, 3.5);
+  const parsed = parseAgUiMessage(encoded);
+  cases.push(["encodes PREFETCH_HIT", parsed?.type === "PREFETCH_HIT"]);
+  cases.push([
+    "PREFETCH_HIT keeps session and key",
+    parsed?.type === "PREFETCH_HIT" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.key === "click:dock-notes" &&
+      parsed.latencyMs === 3.5,
+  ]);
+  cases.push([
+    "rejects incomplete PREFETCH_HIT",
+    parseAgUiMessage({ type: "PREFETCH_HIT", sessionId: "sess-eval" }) === null,
+  ]);
+
+  const finished = encodeRunFinished("sess-eval", 2, "prefetch", 3.5);
+  cases.push([
+    "RUN_FINISHED still parses",
+    parseAgUiMessage(finished)?.type === "RUN_FINISHED",
+  ]);
+
+  const cache = new PrefetchCache();
+  cache.set(event, {
+    statePatch: [{ op: "replace", path: "/focus", value: { widgetId: "dock-notes" } }],
+    uiPatch: [],
+  });
+  const hit = cache.get(event);
+  cases.push(["prefetch cache returns a hit", hit !== undefined]);
+  cases.push(["prefetch cache consumes the entry", cache.get(event) === undefined]);
+  cases.push([
+    "prefetch stats record the hit",
+    cache.stats().hits === 1 && cache.stats().misses === 1,
+  ]);
+
+  const likely = likelyPrefetchEvents({
+    desktop: { dock: ["dock-notes", "dock-files"] },
+    windows: {},
+  });
+  cases.push([
+    "likely prefetch keys match dock clicks",
+    likely.map((e) => eventKey(e)).join(",") === "click:dock-notes,click:dock-files",
+  ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 function checkPlannerContextPack(): boolean {
   console.log("\n▶ planner-context-pack");
   const cases: Array<[string, boolean]> = [];
@@ -275,7 +340,10 @@ const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = checkPlannerContextPack() && checkSessionConflictPolicy();
+let allOk =
+  checkAgUiPrefetchHit() &&
+  checkPlannerContextPack() &&
+  checkSessionConflictPolicy();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;
