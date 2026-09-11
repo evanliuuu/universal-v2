@@ -1,6 +1,7 @@
 import type { PersistedEventRecord } from "../persistence/event-log";
 import {
   encodeEvent,
+  encodePrefetchHit,
   encodeRunFinished,
   encodeStateDelta,
   encodeStateSnapshot,
@@ -104,6 +105,10 @@ export class WsSync {
         sessionId,
       }),
     );
+  }
+
+  pushPrefetchHit(sessionId: string, key: string, latencyMs: number) {
+    this.send(encodePrefetchHit(sessionId, key, latencyMs));
   }
 
   pushRunFinished(
