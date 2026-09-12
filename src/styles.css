@@ -252,3 +252,40 @@ body {
   border-radius: 10px;
   background: #000;
 }
+
+@media (max-width: 800px) {
+  .chrome {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .chrome-controls {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .chrome-controls input[type="text"] {
+    min-width: 0;
+    flex: 1 1 160px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr minmax(140px, 28vh);
+  }
+
+  .panel {
+    border-right: none;
+    border-top: 1px solid #2a3441;
+    order: 2;
+  }
+
+  .viewport-wrap {
+    padding: 8px;
+    min-height: 0;
+  }
+}

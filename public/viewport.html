@@ -374,6 +374,15 @@
         }
       });
 
+      function syncLayout() {
+        const screen =
+          document.querySelector(".screen, .uw-screen") || document.body;
+        const width = screen.clientWidth || window.innerWidth;
+        document.body.dataset.layout = width <= 640 ? "narrow" : "wide";
+      }
+      window.addEventListener("resize", syncLayout);
+      syncLayout();
+
       bindEvents();
       parent.postMessage({ source: "universal-viewport", type: "ready" }, "*");
     </script>

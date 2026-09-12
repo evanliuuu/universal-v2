@@ -25,6 +25,8 @@ import {
   SessionHealth,
 } from "../src/runtime/observability";
 import { renderTree } from "../src/widgets/registry";
+import { NARROW_BREAKPOINT, shouldStackWindows } from "../src/runtime/narrow";
+import { VIEWPORT_CSS } from "../src/runtime/renderer";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -363,6 +365,31 @@ function checkWidgetA11y(): boolean {
   return passed === cases.length;
 }
 
+function checkNarrowLayout(): boolean {
+  console.log("\n▶ narrow-layout");
+  const cases: Array<[string, boolean]> = [];
+  cases.push(["stacks at 390", shouldStackWindows(390)]);
+  cases.push(["stacks at breakpoint", shouldStackWindows(NARROW_BREAKPOINT)]);
+  cases.push(["does not stack at 800", !shouldStackWindows(800)]);
+  cases.push([
+    "viewport CSS has narrow media query",
+    VIEWPORT_CSS.includes(`@container desktop (max-width: ${NARROW_BREAKPOINT}px)`),
+  ]);
+  cases.push([
+    "narrow CSS stacks windows",
+    VIEWPORT_CSS.includes("position: relative !important"),
+  ]);
+  cases.push(["narrow CSS wraps dock", VIEWPORT_CSS.includes("flex-wrap: wrap")]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
@@ -372,7 +399,8 @@ let allOk =
   checkPlannerContextPack() &&
   checkSessionConflictPolicy() &&
   checkObservability() &&
-  checkWidgetA11y();
+  checkWidgetA11y() &&
+  checkNarrowLayout();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

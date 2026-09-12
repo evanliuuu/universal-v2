@@ -49,4 +49,5 @@ Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch 
 - Sync core: `src/sync/` (conflict + session room) shared by local server and Cloudflare DO
 - Session health in the sidebar: token bar, latency histogram, retry on budget/patch/sync failures
 - Keyboard: Tab through dock/windows, Enter to activate, Escape to close; widgets expose ARIA roles
+- Narrow layout (≤640px desktop / ≤800px chrome): dock wraps, windows stack, resize handles hide
 - Eval sequences are in `eval/sequences/`

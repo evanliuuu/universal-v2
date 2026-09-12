@@ -65,7 +65,14 @@ export function createSeedState(): UniversalState {
     dock: w({
       id: "dock",
       type: "box",
-      props: { className: "dock", role: "toolbar", ariaLabel: "Applications" },
+      props: {
+        className: "dock",
+        role: "toolbar",
+        ariaLabel: "Applications",
+        layout: "flex",
+        gap: 10,
+        justify: "center",
+      },
       children: dockIds,
     }),
     ...dockWidgets(),

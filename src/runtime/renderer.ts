@@ -7,11 +7,10 @@ const VIEWPORT_CSS = `
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; font-family: var(--uw-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif); color: var(--uw-text, #111); }
   body { background: var(--uw-bg, linear-gradient(135deg, #1a6fa8 0%, #4aadce 50%, #87ceeb 100%)); overflow: hidden; }
-  .uw-screen { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-  .uw-menubar { display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: var(--uw-menubar-bg, rgba(255,255,255,0.72)); backdrop-filter: blur(12px); font-size: 13px; }
-  .uw-desktop { flex: 1; position: relative; }
-  .uw-dock { display: flex; justify-content: center; gap: 10px; padding: 8px 14px 12px; }
-  .uw-dock > .uw-box { display: flex; gap: 10px; padding: 8px 14px; background: var(--uw-dock-bg, rgba(255,255,255,0.75)); backdrop-filter: blur(12px); border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+  .uw-screen, .screen { display: flex; flex-direction: column; height: 100vh; width: 100%; container-type: inline-size; container-name: desktop; }
+  .uw-menubar, .menubar { display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: var(--uw-menubar-bg, rgba(255,255,255,0.72)); backdrop-filter: blur(12px); font-size: 13px; }
+  .uw-desktop, .desktop { flex: 1; position: relative; min-height: 0; }
+  .uw-dock, .dock { display: flex; justify-content: center; flex-wrap: nowrap; gap: 10px; padding: 8px 14px 12px; background: var(--uw-dock-bg, rgba(255,255,255,0.75)); backdrop-filter: blur(12px); border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); margin: 0 auto 10px; }
   .uw-dock-icon { font-size: 28px; min-width: 44px; min-height: 44px; border: none; background: transparent; cursor: pointer; border-radius: 10px; transition: transform 0.15s; }
   .uw-dock-icon:hover { transform: scale(1.12); background: rgba(0,0,0,0.06); }
   :focus-visible { outline: 3px solid var(--uw-accent, #007aff); outline-offset: 2px; }
@@ -70,6 +69,14 @@ const VIEWPORT_CSS = `
   body[data-theme="material"] .uw-titlebar { color: #fff; }
   body[data-theme="high-contrast"] .uw-window-chrome { border: 2px solid #ffff00; border-radius: 0; }
   body[data-theme="high-contrast"] .uw-titlebar { color: #000; }
+  @container desktop (max-width: 640px) {
+    .uw-desktop, .desktop { overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 8px; }
+    .uw-window-chrome { position: relative !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; min-height: 220px; max-width: 100%; }
+    .uw-resize-handle { display: none; }
+    .uw-dock, .dock { flex-wrap: wrap; justify-content: center; gap: 4px; padding: 6px 8px; max-width: calc(100% - 16px); }
+    .uw-dock-icon, .dock-icon { min-width: 40px; min-height: 40px; font-size: 24px; }
+    .uw-dialog-card { min-width: 0; max-width: calc(100cqi - 24px); }
+  }
 `;
 
 export { VIEWPORT_CSS };
