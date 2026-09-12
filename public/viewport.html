@@ -44,6 +44,16 @@
           el.classList.toggle("open", !!props.open);
           const panel = el.querySelector(".uw-menu-panel");
           if (panel) panel.hidden = !props.open;
+          const trigger = el.querySelector(".uw-menu-trigger");
+          if (trigger) trigger.setAttribute("aria-expanded", props.open ? "true" : "false");
+        }
+        if (widgetType === "tabs" && props.activeTab != null) {
+          el.querySelectorAll('[role="tab"]').forEach((btn) => {
+            const id = (btn.dataset.widgetId || "").replace(/^tab-/, "");
+            const on = id === props.activeTab;
+            btn.classList.toggle("active", on);
+            btn.setAttribute("aria-selected", on ? "true" : "false");
+          });
         }
         if (widgetType === "dialog" && props.open != null) {
           el.hidden = !props.open;
@@ -68,8 +78,9 @@
             .map((item) => {
               const id = typeof item === "string" ? "" : (item.id ?? "");
               const label = typeof item === "string" ? item : (item.label ?? item);
-              const sel = id && id === selected ? " selected" : "";
-              return `<li class="uw-list-item${sel}" data-item-id="${id ?? ""}">${label ?? ""}</li>`;
+              const sel = id && id === selected;
+              const selectedAttr = sel ? " selected aria-selected=\"true\"" : " aria-selected=\"false\"";
+              return `<li class="uw-list-item${sel ? " selected" : ""}" role="option" tabindex="0" data-item-id="${id ?? ""}"${selectedAttr}>${label ?? ""}</li>`;
             })
             .join("");
         }
@@ -236,6 +247,71 @@
             },
             "*",
           );
+        });
+
+        document.addEventListener("keydown", (e) => {
+          const target = e.target instanceof Element ? e.target : document.body;
+          if (e.key === "Escape") {
+            const dialog = root.querySelector(".uw-dialog-root:not([hidden])");
+            if (dialog) {
+              e.preventDefault();
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: dialog.dataset.widgetId,
+                  value: "close",
+                  behavior: "local",
+                },
+                "*",
+              );
+              return;
+            }
+            const win =
+              target.closest(".uw-window-chrome") ||
+              root.querySelector(".uw-window-chrome");
+            if (win?.dataset.windowId) {
+              e.preventDefault();
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "close_window",
+                  windowId: win.dataset.windowId,
+                },
+                "*",
+              );
+            }
+            return;
+          }
+
+          const item = target.closest(".uw-list-item");
+          if (item && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            item.click();
+            return;
+          }
+
+          if (item && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            const list = item.closest("[role=listbox]");
+            const options = [...(list?.querySelectorAll(".uw-list-item") ?? [])];
+            const idx = options.indexOf(item);
+            const next =
+              options[idx + (e.key === "ArrowDown" ? 1 : -1)] ?? item;
+            next.focus();
+            return;
+          }
+
+          if (
+            target.matches('[role="tab"]') &&
+            (e.key === "ArrowRight" || e.key === "ArrowLeft")
+          ) {
+            e.preventDefault();
+            const tabs = [...target.parentElement.querySelectorAll('[role="tab"]')];
+            const idx = tabs.indexOf(target);
+            const next = tabs[idx + (e.key === "ArrowRight" ? 1 : -1)] ?? e.target;
+            next.focus();
+          }
         });
 
         document.addEventListener("change", (e) => {

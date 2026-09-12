@@ -17,6 +17,28 @@ body {
   height: 100vh;
 }
 
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -40px;
+  z-index: 20;
+  padding: 6px 10px;
+  background: #3d8bfd;
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+:focus-visible {
+  outline: 2px solid #3d8bfd;
+  outline-offset: 2px;
+}
+
 .chrome {
   display: flex;
   align-items: center;

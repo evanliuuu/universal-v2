@@ -14,9 +14,11 @@ const VIEWPORT_CSS = `
   .uw-dock > .uw-box { display: flex; gap: 10px; padding: 8px 14px; background: var(--uw-dock-bg, rgba(255,255,255,0.75)); backdrop-filter: blur(12px); border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
   .uw-dock-icon { font-size: 28px; min-width: 44px; min-height: 44px; border: none; background: transparent; cursor: pointer; border-radius: 10px; transition: transform 0.15s; }
   .uw-dock-icon:hover { transform: scale(1.12); background: rgba(0,0,0,0.06); }
+  :focus-visible { outline: 3px solid var(--uw-accent, #007aff); outline-offset: 2px; }
+  .uw-window-chrome:focus-visible { outline: 3px solid var(--uw-accent, #007aff); outline-offset: 2px; }
   .uw-window-chrome { position: absolute; background: var(--uw-window-bg, #fff); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.28); display: flex; flex-direction: column; overflow: hidden; }
   .uw-titlebar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--uw-titlebar-bg, #f0f0f0); border-bottom: 1px solid #ddd; color: var(--uw-text, #111); }
-  .uw-window-controls .close { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; cursor: pointer; }
+  .uw-window-controls .close { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; cursor: pointer; border: none; padding: 0; }
   .uw-window-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; }
   .uw-window-body { flex: 1; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
   .uw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

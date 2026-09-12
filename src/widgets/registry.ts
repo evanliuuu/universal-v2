@@ -49,6 +49,26 @@ function dataAttrs(node: WidgetNode): string {
   return `data-widget-id="${node.id}" data-widget-type="${node.type}"${behavior}`;
 }
 
+function ariaAttrs(node: WidgetNode, extras: Record<string, string | boolean | undefined> = {}): string {
+  const props = node.props as Record<string, unknown>;
+  const merged: Record<string, string | boolean | undefined> = {
+    role: typeof props.role === "string" ? props.role : undefined,
+    "aria-label":
+      typeof props.ariaLabel === "string"
+        ? props.ariaLabel
+        : typeof props.title === "string"
+          ? props.title
+          : undefined,
+    ...extras,
+  };
+  return Object.entries(merged)
+    .filter(([, value]) => value !== undefined && value !== false && value !== "")
+    .map(([key, value]) =>
+      value === true ? ` ${key}` : ` ${key}="${escapeHtml(String(value))}"`,
+    )
+    .join("");
+}
+
 function layoutStyle(node: WidgetNode): string {
   const parts: string[] = [];
   const layout = node.props.layout;
@@ -76,7 +96,7 @@ function layoutStyle(node: WidgetNode): string {
 
 registerWidget("box", (node, _ctx, renderChild) => {
   const kids = (node.children ?? []).map(renderChild).join("");
-  return `<div ${dataAttrs(node)} class="${cls(node)}"${layoutStyle(node)}>${kids}</div>`;
+  return `<div ${dataAttrs(node)} class="${cls(node)}"${ariaAttrs(node)}${layoutStyle(node)}>${kids}</div>`;
 });
 
 registerWidget("text", (node) => {
@@ -89,7 +109,11 @@ registerWidget("button", (node) => {
   const title = node.props.title
     ? ` title="${escapeHtml(String(node.props.title))}"`
     : "";
-  return `<button type="button" ${dataAttrs(node)} class="${cls(node)}"${title}>${escapeHtml(label)}</button>`;
+  const ariaLabel =
+    node.props.title && String(node.props.title) !== label
+      ? String(node.props.title)
+      : undefined;
+  return `<button type="button" ${dataAttrs(node)} class="${cls(node)}"${title}${ariaAttrs(node, { "aria-label": ariaLabel })}>${escapeHtml(label)}</button>`;
 });
 
 registerWidget("input", (node) => {
@@ -117,11 +141,12 @@ registerWidget("list", (node) => {
     .map((item) => {
       const label = typeof item === "string" ? item : (item.label ?? "");
       const id = typeof item === "string" ? "" : (item.id ?? "");
-      const sel = id && id === selected ? " selected" : "";
-      return `<li class="uw-list-item${sel}" data-item-id="${escapeHtml(id)}">${escapeHtml(label)}</li>`;
+      const sel = id && id === selected;
+      const selectedAttr = sel ? " selected aria-selected=\"true\"" : " aria-selected=\"false\"";
+      return `<li class="uw-list-item${sel ? " selected" : ""}" role="option" tabindex="0" data-item-id="${escapeHtml(id)}"${selectedAttr}>${escapeHtml(label)}</li>`;
     })
     .join("");
-  return `<ul ${dataAttrs(node)} class="${cls(node)}">${lis}</ul>`;
+  return `<ul ${dataAttrs(node)} class="${cls(node)}" role="listbox"${ariaAttrs(node)}>${lis}</ul>`;
 });
 
 registerWidget("tabs", (node, _ctx, renderChild) => {
@@ -130,7 +155,7 @@ registerWidget("tabs", (node, _ctx, renderChild) => {
   const tabBar = tabs
     .map(
       (t) =>
-        `<button type="button" class="uw-tab-btn${t.id === active ? " active" : ""}" data-widget-id="tab-${t.id}" data-widget-type="button" data-behavior="local">${escapeHtml(t.label)}</button>`,
+        `<button type="button" role="tab" class="uw-tab-btn${t.id === active ? " active" : ""}" data-widget-id="tab-${t.id}" data-widget-type="button" data-behavior="local" aria-selected="${t.id === active ? "true" : "false"}">${escapeHtml(t.label)}</button>`,
     )
     .join("");
   const panels = (node.children ?? [])
@@ -139,10 +164,10 @@ registerWidget("tabs", (node, _ctx, renderChild) => {
         ? childId.split("-").slice(-1)[0]
         : childId;
       const hidden = suffix !== active ? "hidden-tab-panel" : "";
-      return `<div class="uw-tab-panel ${hidden}">${renderChild(childId)}</div>`;
+      return `<div class="uw-tab-panel ${hidden}" role="tabpanel">${renderChild(childId)}</div>`;
     })
     .join("");
-  return `<div ${dataAttrs(node)} class="${cls(node, "uw-tabs")}"><div class="uw-tab-bar">${tabBar}</div><div class="uw-tab-panels">${panels}</div></div>`;
+  return `<div ${dataAttrs(node)} class="${cls(node, "uw-tabs")}"><div class="uw-tab-bar" role="tablist">${tabBar}</div><div class="uw-tab-panels">${panels}</div></div>`;
 });
 
 registerWidget("table", (node) => {
@@ -190,11 +215,11 @@ registerWidget("slider", (node) => {
   const label = node.props.label
     ? `<span class="uw-slider-label">${escapeHtml(String(node.props.label))}</span>`
     : "";
-  return `<label ${dataAttrs(node)} class="${cls(node, "uw-slider")}">${label}<input type="range" min="${min}" max="${max}" step="${step}" value="${value}" /><span class="uw-slider-value">${value}</span></label>`;
+  return `<label ${dataAttrs(node)} class="${cls(node, "uw-slider")}">${label}<input type="range" min="${min}" max="${max}" step="${step}" value="${value}" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${value}" /><span class="uw-slider-value">${value}</span></label>`;
 });
 
 registerWidget("divider", (node) => {
-  return `<hr ${dataAttrs(node)} class="${cls(node)}" />`;
+  return `<hr ${dataAttrs(node)} class="${cls(node)}" role="separator" />`;
 });
 
 registerWidget("scroll-area", (node, _ctx, renderChild) => {
@@ -213,12 +238,12 @@ registerWidget("menu", (node) => {
   const list = items
     .map(
       (item) =>
-        `<button type="button" class="uw-menu-item" data-menu-item-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button>`,
+        `<button type="button" class="uw-menu-item" role="menuitem" data-menu-item-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button>`,
     )
     .join("");
   return `<div ${dataAttrs(node)} class="${cls(node)}${open ? " open" : ""}">
-    <button type="button" class="uw-menu-trigger" data-action="toggle-menu">${label}</button>
-    <div class="uw-menu-panel"${open ? "" : " hidden"}>${list}</div>
+    <button type="button" class="uw-menu-trigger" data-action="toggle-menu" aria-haspopup="menu" aria-expanded="${open ? "true" : "false"}">${label}</button>
+    <div class="uw-menu-panel" role="menu"${open ? "" : " hidden"}>${list}</div>
   </div>`;
 });
 
@@ -228,10 +253,10 @@ registerWidget("dialog", (node, _ctx, renderChild) => {
   const kids = (node.children ?? []).map(renderChild).join("");
   return `<div ${dataAttrs(node)} class="${cls(node, "uw-dialog-root")}"${open ? "" : " hidden"}>
     <div class="uw-dialog-backdrop" data-action="close-dialog"></div>
-    <div class="uw-dialog-card" role="dialog" aria-modal="true">
+    <div class="uw-dialog-card" role="dialog" aria-modal="true" aria-label="${title}">
       <div class="uw-dialog-header">
         <strong>${title}</strong>
-        <button type="button" class="uw-dialog-close" data-action="close-dialog">×</button>
+        <button type="button" class="uw-dialog-close" data-action="close-dialog" aria-label="Close ${title}">×</button>
       </div>
       <div class="uw-dialog-body">${kids}</div>
     </div>
@@ -246,7 +271,7 @@ registerWidget("icon", (node) => {
   const title = node.props.title
     ? ` title="${escapeHtml(String(node.props.title))}"`
     : "";
-  return `<span ${dataAttrs(node)} class="${cls(node)}"${title} style="font-size:${size}px;line-height:1;display:inline-flex;align-items:center;justify-content:center">${glyph}</span>`;
+  return `<span ${dataAttrs(node)} class="${cls(node)}" role="img"${title}${ariaAttrs(node, { "aria-label": node.props.title ? String(node.props.title) : undefined })} style="font-size:${size}px;line-height:1;display:inline-flex;align-items:center;justify-content:center">${glyph}</span>`;
 });
 
 registerWidget("image", (node) => {
@@ -267,9 +292,9 @@ registerWidget("window", (node, ctx, renderChild) => {
   const title = escapeHtml(String(node.props.title ?? win.title ?? "Window"));
   const style = `left:${win.x}px;top:${win.y}px;width:${win.width}px;height:${win.height}px`;
 
-  return `<div ${dataAttrs(node)} class="${cls(node, "uw-window-chrome")}" style="${style}" data-window-id="${winId}">
+  return `<div ${dataAttrs(node)} class="${cls(node, "uw-window-chrome")}" style="${style}" data-window-id="${winId}" role="dialog" aria-label="${title}" tabindex="-1">
     <div class="uw-titlebar">
-      <div class="uw-window-controls"><span class="close" data-action="close-window" data-window-id="${winId}"></span></div>
+      <div class="uw-window-controls"><button type="button" class="close" data-action="close-window" data-window-id="${winId}" aria-label="Close ${title}"></button></div>
       <div class="uw-window-title">${title}</div>
     </div>
     <div class="uw-window-body">${kids}</div>

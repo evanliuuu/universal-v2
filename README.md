@@ -48,4 +48,5 @@ Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch 
 - Themes include cupertino, dark, win95, material, high-contrast, and custom CSS vars (`meta.themeVars`)
 - Sync core: `src/sync/` (conflict + session room) shared by local server and Cloudflare DO
 - Session health in the sidebar: token bar, latency histogram, retry on budget/patch/sync failures
+- Keyboard: Tab through dock/windows, Enter to activate, Escape to close; widgets expose ARIA roles
 - Eval sequences are in `eval/sequences/`

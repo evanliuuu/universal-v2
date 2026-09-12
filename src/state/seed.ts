@@ -30,13 +30,13 @@ export function createSeedState(): UniversalState {
     screen: w({
       id: "screen",
       type: "box",
-      props: { className: "screen" },
+      props: { className: "screen", role: "application", ariaLabel: "Universal desktop" },
       children: ["menubar", "desktop", "dock"],
     }),
     menubar: w({
       id: "menubar",
       type: "box",
-      props: { className: "menubar" },
+      props: { className: "menubar", role: "banner", ariaLabel: "Menu bar" },
       children: ["menubar-left", "menubar-right"],
     }),
     "menubar-left": w({
@@ -59,13 +59,13 @@ export function createSeedState(): UniversalState {
     desktop: w({
       id: "desktop",
       type: "box",
-      props: { className: "desktop" },
+      props: { className: "desktop", role: "main", ariaLabel: "Desktop" },
       children: [],
     }),
     dock: w({
       id: "dock",
       type: "box",
-      props: { className: "dock" },
+      props: { className: "dock", role: "toolbar", ariaLabel: "Applications" },
       children: dockIds,
     }),
     ...dockWidgets(),

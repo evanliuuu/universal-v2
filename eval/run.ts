@@ -24,6 +24,7 @@ import {
   histogram,
   SessionHealth,
 } from "../src/runtime/observability";
+import { renderTree } from "../src/widgets/registry";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -312,6 +313,56 @@ function checkObservability(): boolean {
   return passed === cases.length;
 }
 
+function checkWidgetA11y(): boolean {
+  console.log("\n▶ widget-a11y");
+  const cases: Array<[string, boolean]> = [];
+  const seed = createSeedState();
+  const html = renderTree({
+    doc: { ui: { rootId: seed.desktop.rootId, widgets: seed.widgets } },
+    windows: seed.windows,
+  });
+  cases.push(["desktop is an application", html.includes('role="application"')]);
+  cases.push(["dock is a toolbar", html.includes('aria-label="Applications"')]);
+  cases.push(["calendar dock has accessible name", html.includes('aria-label="Calendar"')]);
+  cases.push(["dock icons are buttons", html.includes("dock-calendar") && html.includes("<button")]);
+
+  const plan = planMock(
+    seed,
+    createSemanticEvent({ type: "instruction", value: "open files" }),
+  );
+  const response = executePlan(plan, seed);
+  const opened = safeApplyPatches(
+    createDocument(seed),
+    response.statePatch,
+    response.uiPatch,
+  );
+  if (!opened.ok) {
+    console.log("  ✗ could not open files for a11y");
+    return false;
+  }
+  const filesHtml = renderTree({
+    doc: {
+      ui: {
+        rootId: opened.doc.ui.rootId,
+        widgets: opened.doc.state.widgets,
+      },
+    },
+    windows: opened.doc.state.windows,
+  });
+  cases.push(["window is a labeled dialog", filesHtml.includes('aria-label="Files"')]);
+  cases.push(["close control is a button", filesHtml.includes('aria-label="Close Files"')]);
+  cases.push(["file list is a listbox", filesHtml.includes('role="listbox"')]);
+  cases.push(["file rows are options", filesHtml.includes('role="option"')]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
@@ -320,7 +371,8 @@ const sequences = readdirSync(seqDir)
 let allOk =
   checkPlannerContextPack() &&
   checkSessionConflictPolicy() &&
-  checkObservability();
+  checkObservability() &&
+  checkWidgetA11y();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;
