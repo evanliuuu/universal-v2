@@ -2,7 +2,10 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentMode, runAgent } from "../src/agent/loop";
-import { setOpenRouterChat } from "../src/agent/openrouter";
+import {
+  OpenRouterChatRequest,
+  setOpenRouterChat,
+} from "../src/agent/openrouter";
 import { routeModelTier, executionTierForModel } from "../src/agent/router";
 import { tryCompiled } from "../src/runtime/compiled";
 import { safeApplyPatches } from "../src/state/safe-patch";
@@ -12,9 +15,12 @@ import { tryReflex } from "../src/runtime/reflex";
 import { createSemanticEvent } from "../src/state/store";
 import { ExecutionTier, SemanticEvent } from "../src/protocol/types";
 import { executePlan } from "../src/agent/executor";
+import { executeLive } from "../src/agent/executor-live";
+import { planLive } from "../src/agent/planner-live";
 import { planMock } from "../src/agent/planner";
 import {
   buildPlannerContext,
+  PlannerContext,
   RecentEventSummary,
 } from "../src/agent/context-pack";
 import { decideDelta, decideSnapshot } from "../src/sync/conflict";
@@ -98,9 +104,11 @@ async function runSequence(file: string): Promise<boolean> {
   const queue = [...(seq.mockResponses ?? [])];
   const recentEvents: RecentEventSummary[] = [];
 
+  const captured: OpenRouterChatRequest[] = [];
   if (seq.mockResponses) {
     process.env.VITE_OPENROUTER_API_KEY = "eval-mock";
-    setOpenRouterChat(async () => {
+    setOpenRouterChat(async (req) => {
+      captured.push(req);
       const next = queue.shift();
       if (next === undefined) return { ok: false, status: 503 };
       return { ok: true, content: JSON.stringify(next) };
@@ -148,14 +156,65 @@ async function runSequence(file: string): Promise<boolean> {
         passed++;
       }
     }
+
+    if (seq.mockResponses) {
+      const packed = checkCapturedPackedPrompts(captured);
+      for (const [name, ok] of packed) {
+        console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+        if (!ok) passed = -1;
+      }
+    }
   } finally {
     setOpenRouterChat(undefined);
     if (prevKey === undefined) delete process.env.VITE_OPENROUTER_API_KEY;
     else process.env.VITE_OPENROUTER_API_KEY = prevKey;
   }
 
+  if (passed < 0) {
+    console.log("  packed prompt checks failed");
+    return false;
+  }
   console.log(`  ${passed}/${seq.steps.length} passed`);
   return passed === seq.steps.length;
+}
+
+function parsePackedUser(req: OpenRouterChatRequest): {
+  context?: PlannerContext;
+  event?: unknown;
+} | null {
+  try {
+    const parsed = JSON.parse(req.user) as {
+      context?: PlannerContext;
+      event?: unknown;
+    };
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function checkCapturedPackedPrompts(
+  captured: OpenRouterChatRequest[],
+): Array<[string, boolean]> {
+  const planner = captured.find((req) => req.title.includes("planner"));
+  const executor = captured.find((req) => req.title.includes("executor"));
+  const plannerUser = planner ? parsePackedUser(planner) : null;
+  const executorUser = executor ? parsePackedUser(executor) : null;
+
+  return [
+    ["planner prompt captured", planner !== undefined],
+    ["executor prompt captured", executor !== undefined],
+    ["planner user includes focus", plannerUser?.context?.focus !== undefined],
+    [
+      "planner user includes recentEvents",
+      Array.isArray(plannerUser?.context?.recentEvents),
+    ],
+    ["executor user includes focus", executorUser?.context?.focus !== undefined],
+    [
+      "executor user includes recentEvents",
+      Array.isArray(executorUser?.context?.recentEvents),
+    ],
+  ];
 }
 
 function checkPlannerContextPack(): boolean {
@@ -220,6 +279,107 @@ function checkPlannerContextPack(): boolean {
   return passed === cases.length;
 }
 
+async function checkPackedOpenRouterPrompt(): Promise<boolean> {
+  console.log("\n▶ openrouter-packed-prompt");
+  const captured: OpenRouterChatRequest[] = [];
+  const prevKey = process.env.VITE_OPENROUTER_API_KEY;
+  process.env.VITE_OPENROUTER_API_KEY = "eval-mock";
+  setOpenRouterChat(async (req) => {
+    captured.push(req);
+    if (req.title.includes("planner")) {
+      return {
+        ok: true,
+        content: JSON.stringify({
+          action: "set_theme",
+          theme: "dark",
+          rationale: "Switch to dark.",
+        }),
+      };
+    }
+    return {
+      ok: true,
+      content: JSON.stringify({
+        statePatch: [{ op: "replace", path: "/meta/theme", value: "dark" }],
+        uiPatch: [],
+        rationale: "Applying dark theme.",
+      }),
+    };
+  });
+
+  try {
+    const seed = createSeedState();
+    const openEvent = createSemanticEvent({
+      type: "instruction",
+      value: "open calendar",
+    });
+    const openedPlan = executePlan(planMock(seed, openEvent), seed);
+    const opened = safeApplyPatches(
+      createDocument(seed),
+      openedPlan.statePatch,
+      openedPlan.uiPatch,
+    );
+    if (!opened.ok) {
+      console.log("  ✗ could not open calendar for packed prompt");
+      return false;
+    }
+
+    const recentEvents: RecentEventSummary[] = [
+      { type: "click", targetId: "dock-files" },
+      { type: "click", targetId: "dock-calendar" },
+      { type: "instruction", value: "open calendar" },
+    ];
+    const event = createSemanticEvent({
+      type: "instruction",
+      value: "switch to dark theme",
+    });
+    const plan = await planLive(opened.doc.state, event, recentEvents);
+    const live = await executeLive(plan, opened.doc.state, event, recentEvents);
+    if (!live) {
+      console.log("  ✗ live executor did not run");
+      return false;
+    }
+
+    const planner = captured.find((req) => req.title.includes("planner"));
+    const executor = captured.find((req) => req.title.includes("executor"));
+    const plannerCtx = planner ? parsePackedUser(planner)?.context : undefined;
+    const executorCtx = executor ? parsePackedUser(executor)?.context : undefined;
+
+    const cases: Array<[string, boolean]> = [
+      ["planner called", planner !== undefined],
+      ["executor called", executor !== undefined],
+      ["planner focus window", plannerCtx?.focus.window?.id === "win-calendar"],
+      ["planner focus widget", plannerCtx?.focus.widget?.id === "dock-calendar"],
+      [
+        "planner recent events",
+        plannerCtx?.recentEvents.some((e) => e.targetId === "dock-calendar") ===
+          true,
+      ],
+      [
+        "executor focus widget",
+        executorCtx?.focus.widget?.id === "dock-calendar",
+      ],
+      [
+        "executor recent events",
+        executorCtx?.recentEvents.some((e) => e.value === "open calendar") ===
+          true,
+      ],
+      ["live executor applied theme", live.source === "live"],
+    ];
+
+    let passed = 0;
+    for (const [name, ok] of cases) {
+      console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+      if (ok) passed++;
+    }
+    console.log(`  ${passed}/${cases.length} passed`);
+    return passed === cases.length;
+  } finally {
+    setOpenRouterChat(undefined);
+    if (prevKey === undefined) delete process.env.VITE_OPENROUTER_API_KEY;
+    else process.env.VITE_OPENROUTER_API_KEY = prevKey;
+  }
+}
+
 function checkSessionConflictPolicy(): boolean {
   console.log("\n▶ session-conflict-policy");
   const cases: Array<[string, boolean]> = [];
@@ -275,7 +435,10 @@ const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = checkPlannerContextPack() && checkSessionConflictPolicy();
+let allOk =
+  checkPlannerContextPack() &&
+  (await checkPackedOpenRouterPrompt()) &&
+  checkSessionConflictPolicy();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;
