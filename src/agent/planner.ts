@@ -99,5 +99,14 @@ export function parseInstruction(
     };
   }
 
+  const tokenLimitMatch = lower.match(/token limit(?: to)? (\d+)/);
+  if (lower.includes("token") && tokenLimitMatch) {
+    return {
+      action: "set_budget",
+      tokenLimit: Number(tokenLimitMatch[1]),
+      rationale: text,
+    };
+  }
+
   return { action: "noop", rationale: `Unrecognized instruction: ${text}` };
 }

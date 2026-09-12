@@ -19,7 +19,14 @@ const stateViewEl = document.getElementById("state-view")!;
 const sessionInfoEl = document.getElementById("session-info")!;
 const statsEl = document.getElementById("stats")!;
 const serverEl = document.getElementById("server-info")!;
+const errorCard = document.getElementById("error-card")!;
+const errorTitleEl = document.getElementById("error-title")!;
 const errorEl = document.getElementById("error-banner")!;
+const retryBtn = document.getElementById("retry-btn") as HTMLButtonElement;
+const tokenBarFill = document.getElementById("token-bar-fill")!;
+const tokenBarLabel = document.getElementById("token-bar-label")!;
+const latencySummaryEl = document.getElementById("latency-summary")!;
+const latencyHistEl = document.getElementById("latency-hist")!;
 const iframe = document.getElementById("universal-frame") as HTMLIFrameElement;
 const agentModeSelect = document.getElementById("agent-mode") as HTMLSelectElement;
 const resetBtn = document.getElementById("reset-btn")!;
@@ -112,13 +119,44 @@ async function boot() {
     const budget = runtime.getBudgetStats();
     const drift = runtime.getDriftStats();
     sessionInfoEl.textContent = `session ${store.getSessionId().slice(0, 8)}… · seq ${store.getSeq()}`;
+    const usedPct = Math.min(
+      100,
+      Math.round((budget.tokensUsed / Math.max(budget.tokenLimit, 1)) * 100),
+    );
+    tokenBarFill.style.width = `${usedPct}%`;
+    tokenBarFill.className =
+      usedPct >= 90 ? "bar-fill hot" : usedPct >= 70 ? "bar-fill warn" : "bar-fill";
+    tokenBarLabel.textContent = `${budget.tokensUsed}/${budget.tokenLimit}`;
+
+    const health = runtime.getHealth();
+    const last =
+      health.lastMs != null
+        ? `last ${health.lastMs.toFixed(0)}ms [${health.lastTier}]`
+        : "no timings yet";
+    latencySummaryEl.textContent = last;
+    const maxBucket = Math.max(1, ...health.buckets.map((b) => b.count));
+    latencyHistEl.innerHTML = health.buckets
+      .map((bucket) => {
+        const h = Math.max(4, Math.round((bucket.count / maxBucket) * 40));
+        return `<div class="latency-col" title="${bucket.label}: ${bucket.count}"><div class="latency-bar" style="height:${h}px"></div><span>${bucket.label}</span></div>`;
+      })
+      .join("");
+
     statsEl.textContent =
-      `tokens ${budget.tokensUsed}/${budget.tokenLimit} · prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached · drift recoveries ${drift.events}`;
+      `prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached · drift recoveries ${drift.events}`;
     serverEl.textContent = syncStatus(runtime);
 
-    const err = runtime.getLastError();
-    errorEl.textContent = err ?? "";
-    errorEl.hidden = !err;
+    const failure = runtime.getLastFailure();
+    if (failure) {
+      errorTitleEl.textContent = failure.message;
+      errorEl.textContent = failure.detail;
+      retryBtn.hidden = !failure.recoverable;
+      retryBtn.textContent = failure.recoveryLabel;
+      errorCard.hidden = false;
+    } else {
+      errorCard.hidden = true;
+      retryBtn.hidden = true;
+    }
   }
 
   runtime.onStatsChange(paint);
@@ -173,9 +211,11 @@ async function boot() {
         const base = syncApiBase();
         if (!token) {
           if (!base) {
+            errorTitleEl.textContent = "Share failed";
             errorEl.textContent =
               "Share needs a sync server (set VITE_WS_URL / VITE_SYNC_API_URL)";
-            errorEl.hidden = false;
+            retryBtn.hidden = true;
+            errorCard.hidden = false;
             return;
           }
           const created = await createRemoteSession(base);
@@ -192,7 +232,7 @@ async function boot() {
         const url = `${window.location.origin}${window.location.pathname}?${q}`;
         history.replaceState(null, "", `?${q}`);
         wsSync?.pushSnapshot(sessionId, store.getSeq(), store.getDocument());
-        errorEl.hidden = true;
+        errorCard.hidden = true;
         errorEl.textContent = "";
         try {
           await navigator.clipboard.writeText(url);
@@ -202,9 +242,11 @@ async function boot() {
         }
         paint();
       } catch (error) {
+        errorTitleEl.textContent = "Share failed";
         errorEl.textContent =
           error instanceof Error ? error.message : "Share failed";
-        errorEl.hidden = false;
+        retryBtn.hidden = true;
+        errorCard.hidden = false;
       }
     })();
   });
@@ -238,9 +280,11 @@ async function boot() {
         runtime.render();
         paint();
       } catch (error) {
+        errorTitleEl.textContent = "Import failed";
         errorEl.textContent =
           error instanceof Error ? error.message : "Import failed";
-        errorEl.hidden = false;
+        retryBtn.hidden = true;
+        errorCard.hidden = false;
       } finally {
         importInput.value = "";
       }
@@ -260,6 +304,10 @@ async function boot() {
 
   instructInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") instructBtn.click();
+  });
+
+  retryBtn.addEventListener("click", () => {
+    void runtime.recover().then(() => paint());
   });
 
   return runtime;

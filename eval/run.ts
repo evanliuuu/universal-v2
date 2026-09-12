@@ -19,6 +19,11 @@ import {
 } from "../src/agent/context-pack";
 import { decideDelta, decideSnapshot } from "../src/sync/conflict";
 import { SessionRoom } from "../src/sync/session-room";
+import {
+  explainFailure,
+  histogram,
+  SessionHealth,
+} from "../src/runtime/observability";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -270,12 +275,52 @@ function checkSessionConflictPolicy(): boolean {
   return passed === cases.length;
 }
 
+function checkObservability(): boolean {
+  console.log("\n▶ session-health-observability");
+  const cases: Array<[string, boolean]> = [];
+  const health = new SessionHealth();
+  health.record("reflex", 2);
+  health.record("agent-big", 240);
+  health.record("compiled", 12);
+  const snap = health.snapshot();
+  cases.push(["records last sample first", snap.lastMs === 12]);
+  cases.push(["tracks three samples", snap.samples.length === 3]);
+  const buckets = histogram(snap.samples);
+  cases.push([
+    "histogram has a <5ms bucket",
+    buckets.some((b) => b.label === "<5ms" && b.count === 1),
+  ]);
+  cases.push([
+    "histogram has a 200ms+ bucket",
+    buckets.some((b) => b.label === "200ms+" && b.count === 1),
+  ]);
+  const budget = explainFailure("budget", "Used 0 of 1 tokens.");
+  cases.push(["budget failure is recoverable", budget.recoverable]);
+  cases.push([
+    "budget recovery label",
+    budget.recoveryLabel.includes("Raise"),
+  ]);
+  const patch = explainFailure("patch", "cannot add /widgets/nope");
+  cases.push(["patch failure explains the op", patch.detail.includes("nope")]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
   .map((f) => join(seqDir, f));
 
-let allOk = checkPlannerContextPack() && checkSessionConflictPolicy();
+let allOk =
+  checkPlannerContextPack() &&
+  checkSessionConflictPolicy() &&
+  checkObservability();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

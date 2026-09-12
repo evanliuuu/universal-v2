@@ -1,0 +1,11 @@
+{
+  "name": "instruction-set-token-limit",
+  "description": "NL instruction sets an explicit token limit",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "set the token limit to 1" },
+      "assert": { "path": "/meta/budget/tokenLimit", "eq": 1 },
+      "expectTier": "agent-big"
+    }
+  ]
+}

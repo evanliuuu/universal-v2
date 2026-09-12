@@ -105,6 +105,95 @@ body {
   display: none;
 }
 
+.error-banner strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.error-banner p {
+  margin: 0 0 8px;
+}
+
+.error-banner button {
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #c46a73;
+  background: #5a2a31;
+  color: #ffd7db;
+  cursor: pointer;
+}
+
+.health-dash {
+  margin: 0 0 12px;
+  padding: 10px;
+  background: #0c1016;
+  border: 1px solid #2a3441;
+  border-radius: 8px;
+}
+
+.health-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #8b9cb3;
+}
+
+.bar {
+  height: 8px;
+  background: #1e2836;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: #3d8bfd;
+  border-radius: 99px;
+}
+
+.bar-fill.warn {
+  background: #e3b341;
+}
+
+.bar-fill.hot {
+  background: #e35d6a;
+}
+
+.latency-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 56px;
+  margin: 8px 0 4px;
+}
+
+.latency-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+}
+
+.latency-col .latency-bar {
+  width: 100%;
+  background: #3d8bfd;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+.latency-col span {
+  font-size: 9px;
+  color: #6d7f96;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
 .chrome-controls input[type="text"] {
   font: inherit;
   padding: 6px 10px;

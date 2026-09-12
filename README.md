@@ -47,4 +47,5 @@ Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch 
 - Apps register via `defineApp({ open, reflex?, handlers? })` in `src/apps/` — new apps shouldn't need core runtime edits
 - Themes include cupertino, dark, win95, material, high-contrast, and custom CSS vars (`meta.themeVars`)
 - Sync core: `src/sync/` (conflict + session room) shared by local server and Cloudflare DO
+- Session health in the sidebar: token bar, latency histogram, retry on budget/patch/sync failures
 - Eval sequences are in `eval/sequences/`

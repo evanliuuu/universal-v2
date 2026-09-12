@@ -36,6 +36,11 @@ import { viewportBridge } from "./viewport-bridge";
 import { replaySession, ReplayStep } from "./replay";
 import { decideRemoteApply } from "../sync/conflict";
 import { SyncInboundMessage, WsSync } from "../transport/ws-sync";
+import {
+  explainFailure,
+  RuntimeFailure,
+  SessionHealth,
+} from "./observability";
 
 export type { AgentMode };
 
@@ -47,6 +52,8 @@ export class UniversalRuntime {
   private agentMode: AgentMode = "mock";
   private busy = false;
   private lastError: string | null = null;
+  private lastFailure: RuntimeFailure | null = null;
+  private health = new SessionHealth();
   private onStats?: () => void;
   private wsSync: WsSync | null;
   private applyingRemote = false;
@@ -129,7 +136,10 @@ export class UniversalRuntime {
 
   private async onSyncMessage(msg: SyncInboundMessage) {
     if (msg.type === "REJECTED") {
-      this.lastError = `sync rejected: ${msg.reason ?? "unknown"} (server seq ${msg.serverSeq ?? "?"})`;
+      this.fail(
+        "sync",
+        `The other client or server is ahead (seq ${msg.serverSeq ?? "?"}): ${msg.reason ?? "unknown"}`,
+      );
       if (msg.snapshot?.state && msg.snapshot?.ui) {
         await this.applyRemoteSnapshot(msg.serverSeq ?? 0, {
           state: msg.snapshot.state as UniversalDocument["state"],
@@ -197,6 +207,62 @@ export class UniversalRuntime {
     return this.lastError;
   }
 
+  getLastFailure() {
+    return this.lastFailure;
+  }
+
+  getHealth() {
+    return this.health.snapshot();
+  }
+
+  async recover(): Promise<boolean> {
+    const failure = this.lastFailure;
+    if (!failure?.recoverable) return false;
+
+    if (failure.kind === "budget") {
+      const budget = getBudget(this.store.getState());
+      const nextLimit = Math.max(
+        budget.tokenLimit * 2,
+        budget.tokensUsed + 5_000,
+        50_000,
+      );
+      const raised = safeApplyPatches(
+        this.store.getDocument(),
+        [
+          {
+            op: "replace",
+            path: "/meta/budget/tokenLimit",
+            value: nextLimit,
+          },
+        ],
+        [],
+      );
+      if (!raised.ok) {
+        this.fail("patch", raised.error);
+        return false;
+      }
+      this.store.setDocument(raised.doc);
+    }
+
+    const event = failure.event;
+    this.lastFailure = null;
+    this.lastError = null;
+    if (!event) {
+      this.onStats?.();
+      return true;
+    }
+    await this.dispatch(event);
+    return this.lastError == null;
+  }
+
+  private fail(kind: RuntimeFailure["kind"], raw: string, event?: SemanticEvent) {
+    const failure = explainFailure(kind, raw);
+    if (event) failure.event = event;
+    this.lastFailure = failure;
+    this.lastError = `${failure.message} — ${failure.detail}`;
+    this.onStats?.();
+  }
+
   getWsConnected() {
     return this.wsSync?.connected ?? false;
   }
@@ -209,6 +275,8 @@ export class UniversalRuntime {
     this.store.newSession(doc);
     this.prefetch.clear();
     this.lastError = null;
+    this.lastFailure = null;
+    this.health.clear();
     viewportBridge.reset();
     await this.persistence.clearAll();
     await this.persistSnapshot();
@@ -295,6 +363,7 @@ export class UniversalRuntime {
     if (this.busy && event.type !== "instruction") return;
     this.busy = true;
     this.lastError = null;
+    this.lastFailure = null;
     const start = performance.now();
     const doc = this.store.getDocument();
     const patches: AppliedPatch[] = [];
@@ -307,6 +376,7 @@ export class UniversalRuntime {
           reflex.statePatch,
           reflex.uiPatch,
           patches,
+          event,
         );
         if (!ok) return;
         await this.finishDispatch({
@@ -325,6 +395,7 @@ export class UniversalRuntime {
           compiled.statePatch,
           compiled.uiPatch,
           patches,
+          event,
         );
         if (!ok) return;
         await this.finishDispatch({
@@ -339,7 +410,7 @@ export class UniversalRuntime {
 
       const prefetched = this.prefetch.get(event);
       if (prefetched) {
-        const ok = await this.applyAgentResponse(prefetched, patches);
+        const ok = await this.applyAgentResponse(prefetched, patches, event);
         if (!ok) return;
         await this.finishDispatch({
           event,
@@ -353,8 +424,11 @@ export class UniversalRuntime {
       }
 
       if (!canRunAgent(doc.state)) {
-        this.lastError = "Token budget exhausted for this session.";
-        this.onStats?.();
+        this.fail(
+          "budget",
+          `Used ${getBudget(doc.state).tokensUsed} of ${getBudget(doc.state).tokenLimit} tokens.`,
+          event,
+        );
         return;
       }
 
@@ -375,7 +449,7 @@ export class UniversalRuntime {
       ];
       response.statePatch = [...response.statePatch, ...tokenOps];
 
-      const ok = await this.applyAgentResponse(response, patches);
+      const ok = await this.applyAgentResponse(response, patches, event);
       if (!ok) return;
 
       await this.finishDispatch({
@@ -397,6 +471,7 @@ export class UniversalRuntime {
     statePatch: AgentResponse["statePatch"],
     uiPatch: AgentResponse["uiPatch"],
     patches: AppliedPatch[],
+    event?: SemanticEvent,
   ): Promise<boolean> {
     const result = safeApplyPatches(
       this.store.getDocument(),
@@ -404,8 +479,7 @@ export class UniversalRuntime {
       uiPatch,
     );
     if (!result.ok) {
-      this.lastError = `Patch rejected: ${result.error}`;
-      this.onStats?.();
+      this.fail("patch", result.error, event);
       return false;
     }
 
@@ -420,11 +494,13 @@ export class UniversalRuntime {
   private async applyAgentResponse(
     response: AgentResponse,
     patches: AppliedPatch[],
+    event?: SemanticEvent,
   ): Promise<boolean> {
     const ok = await this.applyPatches(
       response.statePatch,
       response.uiPatch,
       patches,
+      event,
     );
     if (
       ok &&
@@ -448,6 +524,7 @@ export class UniversalRuntime {
     patches: AppliedPatch[];
     latencyMs: number;
   }) {
+    this.health.record(opts.tier, opts.latencyMs);
     this.store.appendLog({
       seq: opts.seq,
       event: opts.event,

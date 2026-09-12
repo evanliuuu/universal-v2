@@ -34,10 +34,26 @@
       </header>
       <div class="workspace">
         <aside class="panel">
-          <p id="error-banner" class="error-banner" hidden></p>
+          <div id="error-card" class="error-banner" hidden>
+            <strong id="error-title">Error</strong>
+            <p id="error-banner"></p>
+            <button id="retry-btn" type="button" hidden>Retry</button>
+          </div>
           <p id="session-info" class="meta"></p>
           <p id="server-info" class="meta"></p>
-          <p id="stats" class="meta"></p>
+          <h2>Session health</h2>
+          <div id="health-dash" class="health-dash">
+            <div class="health-row">
+              <span>Tokens</span>
+              <div class="bar" aria-label="Token usage">
+                <div id="token-bar-fill" class="bar-fill"></div>
+              </div>
+              <span id="token-bar-label">0/50000</span>
+            </div>
+            <p id="latency-summary" class="meta"></p>
+            <div id="latency-hist" class="latency-hist" aria-label="Latency histogram"></div>
+            <p id="stats" class="meta"></p>
+          </div>
           <h2>Event log</h2>
           <pre id="event-log"></pre>
           <h2>State</h2>
