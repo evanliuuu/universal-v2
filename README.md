@@ -50,4 +50,7 @@ Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch 
 - Session health in the sidebar: token bar, latency histogram, retry on budget/patch/sync failures
 - Keyboard: Tab through dock/windows, Enter to activate, Escape to close; widgets expose ARIA roles
 - Narrow layout (≤640px desktop / ≤800px chrome): dock wraps, windows stack, resize handles hide
+- Long lists virtualize (Files has 60+ rows; the viewport keeps a 12-row window)
+- Docs: `docs/architecture.md`, `docs/widget-catalog.md`, `docs/build-an-app.md` — also the 📘 Docs dock app
 - Eval sequences are in `eval/sequences/`
+- `npm run endurance` — 200+ events, p95 budget, recover from a token-limit miss

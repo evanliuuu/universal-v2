@@ -94,14 +94,17 @@ export function summarizeByTier(samples: LatencySample[]): Record<
 
 export class SessionHealth {
   private samples: LatencySample[] = [];
+  private totalEvents = 0;
 
   record(tier: ExecutionTier | string, ms: number) {
+    this.totalEvents += 1;
     this.samples.unshift({ tier, ms });
-    if (this.samples.length > 200) this.samples.length = 200;
+    if (this.samples.length > 250) this.samples.length = 250;
   }
 
   clear() {
     this.samples = [];
+    this.totalEvents = 0;
   }
 
   snapshot() {
@@ -111,6 +114,7 @@ export class SessionHealth {
       buckets: histogram(this.samples),
       lastMs: this.samples[0]?.ms,
       lastTier: this.samples[0]?.tier,
+      totalEvents: this.totalEvents,
     };
   }
 }

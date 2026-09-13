@@ -11,6 +11,27 @@ export type DriftStats = {
   lastReason?: string;
 };
 
+export type ViewportPaintStats = {
+  fullRenders: number;
+  patchBatches: number;
+  patchesSent: number;
+};
+
+function scheduleFrame(fn: () => void): number {
+  if (typeof requestAnimationFrame === "function") {
+    return requestAnimationFrame(fn);
+  }
+  return Number(setTimeout(fn, 0));
+}
+
+function cancelFrame(id: number) {
+  if (typeof cancelAnimationFrame === "function") {
+    cancelAnimationFrame(id);
+    return;
+  }
+  clearTimeout(id);
+}
+
 export class ViewportBridge {
   private booted = false;
   private ready = false;
@@ -21,6 +42,11 @@ export class ViewportBridge {
   private lastDriftReason?: string;
   private currentTheme = "cupertino";
   private currentThemeVars = "";
+  private pending: UniversalDocument | null = null;
+  private raf = 0;
+  private fullRenders = 0;
+  private patchBatches = 0;
+  private patchesSent = 0;
 
   mount(iframe: HTMLIFrameElement, doc: UniversalDocument) {
     this.iframe = iframe;
@@ -33,6 +59,9 @@ export class ViewportBridge {
   }
 
   reset() {
+    if (this.raf) cancelFrame(this.raf);
+    this.raf = 0;
+    this.pending = null;
     this.prevWidgets = null;
     this.booted = false;
     this.ready = false;
@@ -40,6 +69,9 @@ export class ViewportBridge {
     this.lastDriftReason = undefined;
     this.currentTheme = "cupertino";
     this.currentThemeVars = "";
+    this.fullRenders = 0;
+    this.patchBatches = 0;
+    this.patchesSent = 0;
     if (this.iframe) this.iframe.src = "about:blank";
   }
 
@@ -51,6 +83,14 @@ export class ViewportBridge {
 
   getDriftStats(): DriftStats {
     return { events: this.driftEvents, lastReason: this.lastDriftReason };
+  }
+
+  getPaintStats(): ViewportPaintStats {
+    return {
+      fullRenders: this.fullRenders,
+      patchBatches: this.patchBatches,
+      patchesSent: this.patchesSent,
+    };
   }
 
   private whenReady(): Promise<void> {
@@ -66,6 +106,17 @@ export class ViewportBridge {
   }
 
   update(doc: UniversalDocument) {
+    this.pending = doc;
+    if (this.raf) return;
+    this.raf = scheduleFrame(() => {
+      this.raf = 0;
+      const next = this.pending;
+      this.pending = null;
+      if (next) this.flush(next);
+    });
+  }
+
+  private flush(doc: UniversalDocument) {
     const ctx = {
       doc: { ui: doc.ui },
       windows: doc.state.windows,
@@ -92,6 +143,7 @@ export class ViewportBridge {
     const css = `${VIEWPORT_CSS}\n${themeVariables(theme, themeVars)}`;
 
     if (!this.prevWidgets || forceFull) {
+      this.fullRenders += 1;
       this.post({
         type: "FULL",
         css,
@@ -99,6 +151,8 @@ export class ViewportBridge {
         theme,
       });
     } else if (patches.length) {
+      this.patchBatches += 1;
+      this.patchesSent += patches.length;
       this.post({ type: "PATCH", patches, theme });
     }
 

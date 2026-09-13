@@ -1,0 +1,15 @@
+{
+  "name": "docs-tab-widgets",
+  "description": "Docs tabs switch the in-app catalog",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-docs" },
+      "assert": { "path": "/apps/docs/activeTab", "eq": "architecture" }
+    },
+    {
+      "event": { "type": "click", "targetId": "tab-widgets" },
+      "assert": { "path": "/apps/docs/activeTab", "eq": "widgets" },
+      "expectTier": "reflex"
+    }
+  ]
+}

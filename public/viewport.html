@@ -72,6 +72,14 @@
           if (props.height != null) el.setAttribute("height", String(props.height));
         }
         if (widgetType === "list") {
+          if (props.items) {
+            el.dataset.items = encodeURIComponent(JSON.stringify(props.items));
+          }
+          if (props.selectedId != null) el.dataset.selected = String(props.selectedId);
+          if (el.dataset.virtualList === "1") {
+            paintVirtualList(el);
+            return;
+          }
           const items = props.items ?? [];
           const selected = props.selectedId ?? "";
           el.innerHTML = items
@@ -294,6 +302,29 @@
           if (item && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
             e.preventDefault();
             const list = item.closest("[role=listbox]");
+            if (list?.dataset.virtualList === "1") {
+              const items = parseListItems(list) ?? [];
+              const rowH = Number(list.dataset.rowHeight || 36);
+              const currentId = item.dataset.itemId;
+              const idx = items.findIndex((entry) => {
+                const id = typeof entry === "string" ? "" : (entry.id ?? "");
+                return id === currentId;
+              });
+              const nextIdx = Math.max(
+                0,
+                Math.min(items.length - 1, idx + (e.key === "ArrowDown" ? 1 : -1)),
+              );
+              const nextItem = items[nextIdx];
+              const nextId =
+                typeof nextItem === "string" ? "" : (nextItem?.id ?? "");
+              list.scrollTop = Math.max(0, (nextIdx - 2) * rowH);
+              paintVirtualList(list);
+              const nextEl =
+                list.querySelector(`[data-item-id="${nextId}"]`) ||
+                list.querySelector(".uw-list-item");
+              nextEl?.focus();
+              return;
+            }
             const options = [...(list?.querySelectorAll(".uw-list-item") ?? [])];
             const idx = options.indexOf(item);
             const next =
@@ -349,6 +380,7 @@
           if (styleEl) styleEl.textContent = data.css ?? "";
           if (data.theme) document.body.dataset.theme = data.theme;
           root.innerHTML = data.html ?? "";
+          bindVirtualLists();
           return;
         }
 
@@ -371,8 +403,64 @@
               root.querySelector(`[data-widget-id="${patch.id}"]`)?.remove();
             }
           }
+          bindVirtualLists();
         }
       });
+
+      function parseListItems(el) {
+        if (el.dataset.virtualList !== "1") return null;
+        try {
+          return JSON.parse(decodeURIComponent(el.dataset.items || "%5B%5D"));
+        } catch {
+          return [];
+        }
+      }
+
+      function listItemId(item) {
+        return typeof item === "string" ? "" : (item?.id ?? "");
+      }
+
+      function listItemLabel(item) {
+        return typeof item === "string" ? item : (item?.label ?? "");
+      }
+
+      function paintVirtualList(el) {
+        const items = parseListItems(el);
+        if (!items) return;
+        const rowH = Number(el.dataset.rowHeight || 36);
+        const win = Number(el.dataset.window || 12);
+        const selected = el.dataset.selected || "";
+        const maxStart = Math.max(0, items.length - win);
+        const start = Math.max(0, Math.min(maxStart, Math.floor(el.scrollTop / rowH)));
+        const visible = items.slice(start, start + win);
+        const top = start * rowH;
+        const bottom = Math.max(0, items.length - start - visible.length) * rowH;
+        el.style.paddingTop = `${top}px`;
+        el.style.paddingBottom = `${bottom}px`;
+        el.innerHTML = visible
+          .map((item) => {
+            const id = listItemId(item);
+            const label = listItemLabel(item);
+            const sel = id && id === selected;
+            const selectedAttr = sel
+              ? " selected aria-selected=\"true\""
+              : " aria-selected=\"false\"";
+            return `<li class="uw-list-item${sel ? " selected" : ""}" role="option" tabindex="0" data-item-id="${id}"${selectedAttr}>${label}</li>`;
+          })
+          .join("");
+      }
+
+      function bindVirtualLists() {
+        root.querySelectorAll("[data-virtual-list]").forEach((el) => {
+          if (el.dataset.virtualBound === "1") return;
+          el.dataset.virtualBound = "1";
+          el.addEventListener(
+            "scroll",
+            () => paintVirtualList(el),
+            { passive: true },
+          );
+        });
+      }
 
       function syncLayout() {
         const screen =

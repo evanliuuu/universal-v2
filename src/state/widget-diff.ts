@@ -1,6 +1,9 @@
 import { WidgetNode } from "../protocol/types";
 import { RenderContext, renderWidget } from "../widgets/registry";
 
+/** Above this many DOM ops, the viewport does a full HTML replace. */
+export const VIEWPORT_PATCH_BUDGET = 8;
+
 export type WidgetDomPatch =
   | { op: "update"; id: string; props: Record<string, unknown> }
   | { op: "replace"; id: string; html: string }
@@ -95,6 +98,6 @@ export function diffWidgets(
     }
   }
 
-  if (patches.length > 8) return { fullRender: true, patches: [] };
+  if (patches.length > VIEWPORT_PATCH_BUDGET) return { fullRender: true, patches: [] };
   return { fullRender: false, patches };
 }

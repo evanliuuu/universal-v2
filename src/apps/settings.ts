@@ -357,6 +357,7 @@ defineApp({
   reflex: (doc, event) => {
     if (event.type === "click" && event.targetId?.startsWith("tab-")) {
       const tab = event.targetId.replace("tab-", "");
+      if (tab !== "general" && tab !== "system") return null;
       const generalClass =
         tab === "general"
           ? "settings-form tab-panel-general"

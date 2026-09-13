@@ -27,6 +27,7 @@ const tokenBarFill = document.getElementById("token-bar-fill")!;
 const tokenBarLabel = document.getElementById("token-bar-label")!;
 const latencySummaryEl = document.getElementById("latency-summary")!;
 const latencyHistEl = document.getElementById("latency-hist")!;
+const viewportStatsEl = document.getElementById("viewport-stats")!;
 const iframe = document.getElementById("universal-frame") as HTMLIFrameElement;
 const agentModeSelect = document.getElementById("agent-mode") as HTMLSelectElement;
 const resetBtn = document.getElementById("reset-btn")!;
@@ -118,6 +119,7 @@ async function boot() {
     const pf = runtime.getPrefetchStats();
     const budget = runtime.getBudgetStats();
     const drift = runtime.getDriftStats();
+    const paints = runtime.getViewportStats();
     sessionInfoEl.textContent = `session ${store.getSessionId().slice(0, 8)}… · seq ${store.getSeq()}`;
     const usedPct = Math.min(
       100,
@@ -131,7 +133,7 @@ async function boot() {
     const health = runtime.getHealth();
     const last =
       health.lastMs != null
-        ? `last ${health.lastMs.toFixed(0)}ms [${health.lastTier}]`
+        ? `last ${health.lastMs.toFixed(0)}ms [${health.lastTier}] · ${health.totalEvents} events`
         : "no timings yet";
     latencySummaryEl.textContent = last;
     const maxBucket = Math.max(1, ...health.buckets.map((b) => b.count));
@@ -142,6 +144,8 @@ async function boot() {
       })
       .join("");
 
+    viewportStatsEl.textContent =
+      `viewport ${paints.patchesSent} patches / ${paints.fullRenders} full`;
     statsEl.textContent =
       `prefetch ${pf.hits}/${pf.misses} hits · ${pf.pending} cached · drift recoveries ${drift.events}`;
     serverEl.textContent = syncStatus(runtime);

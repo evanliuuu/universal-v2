@@ -27,6 +27,16 @@ import {
 import { renderTree } from "../src/widgets/registry";
 import { NARROW_BREAKPOINT, shouldStackWindows } from "../src/runtime/narrow";
 import { VIEWPORT_CSS } from "../src/runtime/renderer";
+import { VIEWPORT_PATCH_BUDGET, diffWidgets } from "../src/state/widget-diff";
+import {
+  VIRTUAL_WINDOW,
+  VIRTUALIZE_AFTER,
+  shouldVirtualize,
+  visibleSlice,
+} from "../src/widgets/virtual-list";
+import { FILE_ITEMS } from "../src/apps/files";
+import { runEnduranceSession } from "../src/runtime/session-endurance";
+import { WidgetNode } from "../src/protocol/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -288,6 +298,7 @@ function checkObservability(): boolean {
   const snap = health.snapshot();
   cases.push(["records last sample first", snap.lastMs === 12]);
   cases.push(["tracks three samples", snap.samples.length === 3]);
+  cases.push(["counts total events past the sample window", snap.totalEvents === 3]);
   const buckets = histogram(snap.samples);
   cases.push([
     "histogram has a <5ms bucket",
@@ -365,6 +376,119 @@ function checkWidgetA11y(): boolean {
   return passed === cases.length;
 }
 
+function checkVirtualLists(): boolean {
+  console.log("\n▶ virtual-lists");
+  const cases: Array<[string, boolean]> = [];
+  const long = Array.from({ length: VIRTUALIZE_AFTER + 5 }, (_, i) => ({
+    id: `item-${i}`,
+    label: `Item ${i}`,
+  }));
+  cases.push(["short lists stay complete", !shouldVirtualize([{ id: "a", label: "A" }])]);
+  cases.push(["long lists virtualize", shouldVirtualize(long)]);
+  cases.push(["files list is long enough", FILE_ITEMS.length > VIRTUALIZE_AFTER]);
+  const windowed = visibleSlice(long, 0);
+  cases.push(["visible window is bounded", windowed.items.length === VIRTUAL_WINDOW]);
+
+  const seed = createSeedState();
+  const plan = planMock(
+    seed,
+    createSemanticEvent({ type: "instruction", value: "open files" }),
+  );
+  const response = executePlan(plan, seed);
+  const opened = safeApplyPatches(
+    createDocument(seed),
+    response.statePatch,
+    response.uiPatch,
+  );
+  if (!opened.ok) {
+    console.log("  ✗ could not open files for virtualization");
+    return false;
+  }
+  const filesHtml = renderTree({
+    doc: {
+      ui: {
+        rootId: opened.doc.ui.rootId,
+        widgets: opened.doc.state.widgets,
+      },
+    },
+    windows: opened.doc.state.windows,
+  });
+  const liCount = filesHtml.match(/class="uw-list-item/g)?.length ?? 0;
+  cases.push(["virtual attr is present", filesHtml.includes('data-virtual-list="1"')]);
+  cases.push(["DOM rows stay in the window", liCount <= VIRTUAL_WINDOW]);
+  cases.push(["DOM rows are fewer than files", liCount < FILE_ITEMS.length]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkPatchBudget(): boolean {
+  console.log("\n▶ viewport-patch-budget");
+  const cases: Array<[string, boolean]> = [];
+  cases.push(["budget is 8", VIEWPORT_PATCH_BUDGET === 8]);
+
+  const prev: Record<string, WidgetNode> = {};
+  const next: Record<string, WidgetNode> = {};
+  for (let i = 0; i < VIEWPORT_PATCH_BUDGET + 1; i++) {
+    const id = `n${i}`;
+    prev[id] = { id, type: "text", props: { text: "a" } };
+    next[id] = { id, type: "text", props: { text: "b" } };
+  }
+  const over = diffWidgets(prev, {
+    doc: { ui: { rootId: "n0", widgets: next } },
+    windows: {},
+  });
+  cases.push(["over budget forces a full render", over.fullRender]);
+
+  const smallPrev: Record<string, WidgetNode> = {
+    n0: { id: "n0", type: "text", props: { text: "a" } },
+  };
+  const smallNext: Record<string, WidgetNode> = {
+    n0: { id: "n0", type: "text", props: { text: "b" } },
+  };
+  const under = diffWidgets(smallPrev, {
+    doc: { ui: { rootId: "n0", widgets: smallNext } },
+    windows: {},
+  });
+  cases.push(["under budget stays a patch", !under.fullRender && under.patches.length === 1]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+async function checkEndurance(): Promise<boolean> {
+  console.log("\n▶ endurance-200");
+  const result = await runEnduranceSession(200);
+  const cases: Array<[string, boolean]> = [
+    ["ran 200+ events", result.events >= 200],
+    ["p95 stays under 50ms", result.p95 <= 50],
+    ["recovered from budget miss", result.recovered],
+    ["no endurance failures", result.ok],
+  ];
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  if (!result.ok) {
+    for (const failure of result.failures) console.log(`      ${failure}`);
+  }
+  console.log(
+    `  ${passed}/${cases.length} passed (p50 ${result.p50.toFixed(1)}ms, p95 ${result.p95.toFixed(1)}ms, last ${result.lastMs.toFixed(1)}ms)`,
+  );
+  return passed === cases.length;
+}
+
 function checkNarrowLayout(): boolean {
   console.log("\n▶ narrow-layout");
   const cases: Array<[string, boolean]> = [];
@@ -400,7 +524,10 @@ let allOk =
   checkSessionConflictPolicy() &&
   checkObservability() &&
   checkWidgetA11y() &&
-  checkNarrowLayout();
+  checkNarrowLayout() &&
+  checkVirtualLists() &&
+  checkPatchBudget() &&
+  (await checkEndurance());
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

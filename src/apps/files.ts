@@ -1,11 +1,35 @@
 import { JsonPatchOp } from "../protocol/types";
 import { defineApp } from "./registry";
 
-const FILES: Record<string, string> = {
+const CORE_FILES: Record<string, string> = {
   readme: "# Universal v2\n\nA tiny desktop driven by JSON patches.",
   todo: "- [ ] add more widgets\n- [ ] cloud sync",
   meeting: "Standup notes\n\nShipped the app registry.",
 };
+
+const CORE_ITEMS = [
+  { id: "readme", label: "readme.md" },
+  { id: "todo", label: "todo.txt" },
+  { id: "meeting", label: "meeting.txt" },
+];
+
+function extraFiles(count = 60): {
+  files: Record<string, string>;
+  items: Array<{ id: string; label: string }>;
+} {
+  const files: Record<string, string> = {};
+  const items: Array<{ id: string; label: string }> = [];
+  for (let i = 1; i <= count; i++) {
+    const id = `log-${String(i).padStart(2, "0")}`;
+    files[id] = `Session log ${i}\nGenerated to keep the file list long enough to virtualize.`;
+    items.push({ id, label: `${id}.txt` });
+  }
+  return { files, items };
+}
+
+const extras = extraFiles();
+export const FILES: Record<string, string> = { ...CORE_FILES, ...extras.files };
+export const FILE_ITEMS = [...CORE_ITEMS, ...extras.items];
 
 export function filesWindowPatches(): {
   statePatch: JsonPatchOp[];
@@ -13,11 +37,7 @@ export function filesWindowPatches(): {
 } {
   const winId = "win-files";
   const rootId = "files-root";
-  const items = [
-    { id: "readme", label: "readme.md" },
-    { id: "todo", label: "todo.txt" },
-    { id: "meeting", label: "meeting.txt" },
-  ];
+  const items = FILE_ITEMS;
   const statePatch: JsonPatchOp[] = [
     {
       op: "add",
@@ -49,7 +69,7 @@ export function filesWindowPatches(): {
       value: {
         id: "files-scroll",
         type: "scroll-area",
-        props: { maxHeight: 160, className: "files-scroll" },
+        props: { maxHeight: 432, className: "files-scroll" },
         children: ["files-list"],
       },
     },

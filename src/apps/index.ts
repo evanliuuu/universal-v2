@@ -6,3 +6,4 @@ import "./notes";
 import "./settings";
 import "./files";
 import "./terminal";
+import "./docs";

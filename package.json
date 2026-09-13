@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "eval": "tsx eval/run.ts",
+    "endurance": "tsx scripts/endurance.ts",
     "smoke:sync": "tsx scripts/smoke-sync.ts"
   },
   "dependencies": {

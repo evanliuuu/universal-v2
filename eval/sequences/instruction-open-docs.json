@@ -1,0 +1,11 @@
+{
+  "name": "instruction-open-docs",
+  "description": "Natural language instruction opens docs",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open the docs app" },
+      "assert": { "path": "/windows/win-docs", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

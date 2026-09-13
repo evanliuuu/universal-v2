@@ -1,4 +1,14 @@
 import { WidgetNode, WidgetType } from "../protocol/types";
+import {
+  listItemId,
+  listItemLabel,
+  shouldVirtualize,
+  spacerPx,
+  VIRTUAL_ROW_PX,
+  VIRTUAL_WINDOW,
+  visibleSlice,
+  type ListItem,
+} from "./virtual-list";
 
 export type RenderContext = {
   doc: { ui: { rootId: string; widgets: Record<string, WidgetNode> } };
@@ -47,6 +57,38 @@ function cls(node: WidgetNode, extra = ""): string {
 function dataAttrs(node: WidgetNode): string {
   const behavior = node.behavior ? ` data-behavior="${node.behavior}"` : "";
   return `data-widget-id="${node.id}" data-widget-type="${node.type}"${behavior}`;
+}
+
+function listWindow(items: ListItem[], selected: string) {
+  const selectedIndex = items.findIndex((item) => listItemId(item) === selected);
+  const startHint = selectedIndex >= 0 ? Math.max(0, selectedIndex - 2) : 0;
+  return shouldVirtualize(items)
+    ? visibleSlice(items, startHint)
+    : { start: 0, items };
+}
+
+function renderListOptions(items: ListItem[], selected: string): string {
+  const visible = listWindow(items, selected).items;
+  return visible
+    .map((item) => {
+      const label = listItemLabel(item);
+      const id = listItemId(item);
+      const sel = Boolean(id && id === selected);
+      const selectedAttr = sel
+        ? " selected aria-selected=\"true\""
+        : " aria-selected=\"false\"";
+      return `<li class="uw-list-item${sel ? " selected" : ""}" role="option" tabindex="0" data-item-id="${escapeHtml(id)}"${selectedAttr}>${escapeHtml(label)}</li>`;
+    })
+    .join("");
+}
+
+function virtualListAttrs(items: ListItem[], selected: string): string {
+  if (!shouldVirtualize(items)) return "";
+  const { start, items: visible } = listWindow(items, selected);
+  const top = spacerPx(start);
+  const bottom = spacerPx(items.length - start - visible.length);
+  const encoded = encodeURIComponent(JSON.stringify(items));
+  return ` data-virtual-list="1" data-items="${encoded}" data-selected="${escapeHtml(selected)}" data-row-height="${VIRTUAL_ROW_PX}" data-window="${VIRTUAL_WINDOW}" style="max-height:${VIRTUAL_WINDOW * VIRTUAL_ROW_PX}px;overflow:auto;gap:0;padding-top:${top}px;padding-bottom:${bottom}px"`;
 }
 
 function ariaAttrs(node: WidgetNode, extras: Record<string, string | boolean | undefined> = {}): string {
@@ -137,16 +179,7 @@ registerWidget("list", (node) => {
     (node.props.items as Array<{ id?: string; label?: string } | string>) ??
     [];
   const selected = String(node.props.selectedId ?? "");
-  const lis = items
-    .map((item) => {
-      const label = typeof item === "string" ? item : (item.label ?? "");
-      const id = typeof item === "string" ? "" : (item.id ?? "");
-      const sel = id && id === selected;
-      const selectedAttr = sel ? " selected aria-selected=\"true\"" : " aria-selected=\"false\"";
-      return `<li class="uw-list-item${sel ? " selected" : ""}" role="option" tabindex="0" data-item-id="${escapeHtml(id)}"${selectedAttr}>${escapeHtml(label)}</li>`;
-    })
-    .join("");
-  return `<ul ${dataAttrs(node)} class="${cls(node)}" role="listbox"${ariaAttrs(node)}>${lis}</ul>`;
+  return `<ul ${dataAttrs(node)} class="${cls(node)}" role="listbox"${ariaAttrs(node)}${virtualListAttrs(items, selected)}>${renderListOptions(items, selected)}</ul>`;
 });
 
 registerWidget("tabs", (node, _ctx, renderChild) => {

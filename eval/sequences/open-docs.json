@@ -1,0 +1,11 @@
+{
+  "name": "open-docs",
+  "description": "Dock opens the docs app",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-docs" },
+      "assert": { "path": "/windows/win-docs", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

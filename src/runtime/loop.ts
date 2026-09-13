@@ -215,6 +215,10 @@ export class UniversalRuntime {
     return this.health.snapshot();
   }
 
+  getViewportStats() {
+    return viewportBridge.getPaintStats();
+  }
+
   async recover(): Promise<boolean> {
     const failure = this.lastFailure;
     if (!failure?.recoverable) return false;
