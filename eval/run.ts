@@ -27,6 +27,8 @@ import {
 import { renderTree } from "../src/widgets/registry";
 import { NARROW_BREAKPOINT, shouldStackWindows } from "../src/runtime/narrow";
 import { VIEWPORT_CSS } from "../src/runtime/renderer";
+import { encodePrefetchHit, parseAgUiMessage } from "../src/protocol/ag-ui";
+import { eventKey } from "../src/protocol/messages";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -390,6 +392,55 @@ function checkNarrowLayout(): boolean {
   return passed === cases.length;
 }
 
+function checkAgUiPrefetchHit(): boolean {
+  console.log("\n▶ ag-ui-prefetch-hit");
+  const cases: Array<[string, boolean]> = [];
+
+  const key = eventKey({ type: "click", targetId: "dock-calendar" });
+  const encoded = encodePrefetchHit("sess-1", key, 4.2);
+  cases.push(["encoder type", encoded.type === "PREFETCH_HIT"]);
+  cases.push(["encoder session", encoded.sessionId === "sess-1"]);
+  cases.push(["encoder key", encoded.key === "click:dock-calendar"]);
+  cases.push(["encoder latency", encoded.latencyMs === 4.2]);
+
+  const parsed = parseAgUiMessage(encoded);
+  cases.push(["parse accepts encoded hit", parsed?.type === "PREFETCH_HIT"]);
+  cases.push([
+    "parse keeps key",
+    parsed?.type === "PREFETCH_HIT" && parsed.key === key,
+  ]);
+  cases.push([
+    "parse keeps latency",
+    parsed?.type === "PREFETCH_HIT" && parsed.latencyMs === 4.2,
+  ]);
+
+  cases.push([
+    "parse rejects missing key",
+    parseAgUiMessage({
+      type: "PREFETCH_HIT",
+      sessionId: "sess-1",
+      latencyMs: 1,
+    }) === null,
+  ]);
+  cases.push([
+    "parse rejects non-number latency",
+    parseAgUiMessage({
+      type: "PREFETCH_HIT",
+      sessionId: "sess-1",
+      key,
+      latencyMs: "fast",
+    }) === null,
+  ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
 const seqDir = join(__dirname, "sequences");
 const sequences = readdirSync(seqDir)
   .filter((f) => f.endsWith(".json"))
@@ -400,7 +451,8 @@ let allOk =
   checkSessionConflictPolicy() &&
   checkObservability() &&
   checkWidgetA11y() &&
-  checkNarrowLayout();
+  checkNarrowLayout() &&
+  checkAgUiPrefetchHit();
 for (const file of sequences) {
   const ok = await runSequence(file);
   allOk = allOk && ok;

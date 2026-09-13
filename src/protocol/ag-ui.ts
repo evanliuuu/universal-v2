@@ -57,6 +57,19 @@ export function encodeEvent(sessionId: string, event: unknown) {
   };
 }
 
+export function encodePrefetchHit(
+  sessionId: string,
+  key: string,
+  latencyMs: number,
+) {
+  return {
+    type: "PREFETCH_HIT" as const,
+    sessionId,
+    key,
+    latencyMs,
+  };
+}
+
 export function encodeRunFinished(
   sessionId: string,
   seq: number,
