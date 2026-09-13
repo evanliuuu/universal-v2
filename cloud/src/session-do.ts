@@ -245,7 +245,7 @@ export class SessionDurableObject {
         return;
       }
 
-      if (msg.type === "RUN_FINISHED") {
+      if (msg.type === "RUN_FINISHED" || msg.type === "PREFETCH_HIT") {
         this.broadcast(msg, socket);
         return;
       }

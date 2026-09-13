@@ -574,6 +574,13 @@ export class UniversalRuntime {
         opts.tier,
         opts.latencyMs,
       );
+      if (opts.prefetchHit) {
+        this.wsSync?.pushPrefetchHit(
+          sessionId,
+          eventKey(opts.event),
+          opts.latencyMs,
+        );
+      }
     }
 
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
