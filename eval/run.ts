@@ -37,6 +37,9 @@ import {
 import { FILE_ITEMS } from "../src/apps/files";
 import { runEnduranceSession } from "../src/runtime/session-endurance";
 import { WidgetNode } from "../src/protocol/types";
+import { eventKey } from "../src/protocol/messages";
+import { encodePrefetchHit, parseAgUiMessage } from "../src/protocol/ag-ui";
+import { PrefetchCache } from "../src/agent/prefetch";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -174,6 +177,78 @@ async function runSequence(file: string): Promise<boolean> {
 
   console.log(`  ${passed}/${seq.steps.length} passed`);
   return passed === seq.steps.length;
+}
+
+function checkAgUiPrefetchHit(): boolean {
+  console.log("\n▶ ag-ui-prefetch-hit");
+  const cases: Array<[string, boolean]> = [];
+
+  const event = {
+    type: "click" as const,
+    targetId: "dock-calendar",
+    at: "2026-09-14T16:00:00.000Z",
+  };
+  const cache = new PrefetchCache();
+  cache.set(event, {
+    statePatch: [],
+    uiPatch: [],
+    rationale: "open calendar",
+  });
+  const hit = cache.get(event);
+  const key = eventKey(event);
+  const encoded = encodePrefetchHit("sess-eval", key, 3.5);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["prefetch cache returns the stored response", hit?.rationale === "open calendar"]);
+  cases.push(["prefetch cache records a hit", cache.hits === 1 && cache.misses === 0]);
+  cases.push(["wire key matches eventKey", encoded.key === "click:dock-calendar"]);
+  cases.push(["encode type is PREFETCH_HIT", encoded.type === "PREFETCH_HIT"]);
+  cases.push(["encode keeps session and latency", encoded.sessionId === "sess-eval" && encoded.latencyMs === 3.5]);
+  cases.push(["parse accepts a valid hit", parsed?.type === "PREFETCH_HIT"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "PREFETCH_HIT" &&
+      parsed.key === encoded.key &&
+      parsed.latencyMs === 3.5 &&
+      parsed.sessionId === "sess-eval",
+  ]);
+
+  const missingKey = parseAgUiMessage({
+    type: "PREFETCH_HIT",
+    sessionId: "sess-eval",
+    latencyMs: 1,
+  });
+  cases.push(["parse rejects a missing key", missingKey === null]);
+
+  const badLatency = parseAgUiMessage({
+    type: "PREFETCH_HIT",
+    sessionId: "sess-eval",
+    key,
+    latencyMs: "fast",
+  });
+  cases.push(["parse rejects a non-number latency", badLatency === null]);
+
+  const missingLatency = parseAgUiMessage({
+    type: "PREFETCH_HIT",
+    sessionId: "sess-eval",
+    key,
+  });
+  cases.push(["parse rejects a missing latency", missingLatency === null]);
+
+  const miss = cache.get({
+    type: "click",
+    targetId: "dock-notes",
+    at: event.at,
+  });
+  cases.push(["prefetch miss stays undefined", miss === undefined && cache.misses === 1]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
 }
 
 function checkPlannerContextPack(): boolean {
@@ -520,6 +595,7 @@ const sequences = readdirSync(seqDir)
   .map((f) => join(seqDir, f));
 
 let allOk =
+  checkAgUiPrefetchHit() &&
   checkPlannerContextPack() &&
   checkSessionConflictPolicy() &&
   checkObservability() &&
