@@ -323,10 +323,11 @@ registerWidget("window", (node, ctx, renderChild) => {
 
   const kids = (node.children ?? []).map(renderChild).join("");
   const title = escapeHtml(String(node.props.title ?? win.title ?? "Window"));
-  const style = `left:${win.x}px;top:${win.y}px;width:${win.width}px;height:${win.height}px`;
+  const z = Number(win.z ?? 1);
+  const style = `left:${win.x}px;top:${win.y}px;width:${win.width}px;height:${win.height}px;z-index:${z}`;
 
   return `<div ${dataAttrs(node)} class="${cls(node, "uw-window-chrome")}" style="${style}" data-window-id="${winId}" role="dialog" aria-label="${title}" tabindex="-1">
-    <div class="uw-titlebar">
+    <div class="uw-titlebar" data-action="move-window" data-window-id="${winId}">
       <div class="uw-window-controls"><button type="button" class="close" data-action="close-window" data-window-id="${winId}" aria-label="Close ${title}"></button></div>
       <div class="uw-window-title">${title}</div>
     </div>

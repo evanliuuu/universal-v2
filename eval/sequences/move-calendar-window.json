@@ -1,0 +1,18 @@
+{
+  "name": "move-calendar-window",
+  "description": "move_window reflex persists titlebar drop position",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": {
+        "type": "move_window",
+        "value": { "windowId": "win-calendar", "x": 240, "y": 180 }
+      },
+      "assert": { "path": "/windows/win-calendar/x", "eq": 240 },
+      "expectTier": "reflex"
+    }
+  ]
+}

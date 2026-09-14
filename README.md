@@ -49,6 +49,7 @@ Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch 
 - Sync core: `src/sync/` (conflict + session room) shared by local server and Cloudflare DO
 - Session health in the sidebar: token bar, latency histogram, retry on budget/patch/sync failures
 - Keyboard: Tab through dock/windows, Enter to activate, Escape to close; widgets expose ARIA roles
+- Drag a titlebar to move a window; click a window to bring it in front
 - Narrow layout (≤640px desktop / ≤800px chrome): dock wraps, windows stack, resize handles hide
 - Long lists virtualize (Files has 60+ rows; the viewport keeps a 12-row window)
 - Docs: `docs/architecture.md`, `docs/widget-catalog.md`, `docs/build-an-app.md` — also the 📘 Docs dock app

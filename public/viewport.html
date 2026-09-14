@@ -9,6 +9,8 @@
     <script>
       const root = document.getElementById("uw-root");
       let resizeState = null;
+      let dragState = null;
+      let suppressClick = false;
 
       function applyUpdate(el, props, widgetType) {
         if (props.className != null) {
@@ -71,6 +73,13 @@
           if (props.width != null) el.setAttribute("width", String(props.width));
           if (props.height != null) el.setAttribute("height", String(props.height));
         }
+        if (widgetType === "window") {
+          if (props.x != null) el.style.left = `${Number(props.x)}px`;
+          if (props.y != null) el.style.top = `${Number(props.y)}px`;
+          if (props.z != null) el.style.zIndex = String(Number(props.z));
+          if (props.width != null) el.style.width = `${Number(props.width)}px`;
+          if (props.height != null) el.style.height = `${Number(props.height)}px`;
+        }
         if (widgetType === "list") {
           if (props.items) {
             el.dataset.items = encodeURIComponent(JSON.stringify(props.items));
@@ -94,8 +103,28 @@
         }
       }
 
+      function desktopRect() {
+        const desktop =
+          root.querySelector(".desktop, .uw-desktop") || root;
+        return desktop.getBoundingClientRect();
+      }
+
+      function raiseWindow(win) {
+        if (!win) return;
+        const zs = [...root.querySelectorAll(".uw-window-chrome")].map((el) =>
+          Number(el.style.zIndex || 1),
+        );
+        win.style.zIndex = String(Math.max(1, ...zs) + 1);
+      }
+
       function bindEvents() {
         document.addEventListener("click", (e) => {
+          if (suppressClick) {
+            suppressClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           const close = e.target.closest('[data-action="close-window"]');
           if (close) {
             parent.postMessage(
@@ -164,6 +193,22 @@
           }
 
           if (e.target.closest('[data-action="resize-window"]')) return;
+          if (e.target.closest('[data-action="move-window"]')) {
+            const win = e.target.closest(".uw-window-chrome");
+            if (win) {
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: win.dataset.widgetId,
+                  value: { action: "raise", windowId: win.dataset.windowId },
+                  behavior: "local",
+                },
+                "*",
+              );
+            }
+            return;
+          }
 
           const item = e.target.closest(".uw-list-item");
           const el = e.target.closest("[data-widget-id]");
@@ -182,22 +227,64 @@
         });
 
         document.addEventListener("mousedown", (e) => {
+          const win = e.target.closest(".uw-window-chrome");
+          if (win) raiseWindow(win);
+
           const handle = e.target.closest('[data-action="resize-window"]');
-          if (!handle) return;
+          if (handle) {
+            e.preventDefault();
+            const chrome = handle.closest(".uw-window-chrome");
+            if (!chrome) return;
+            const rect = chrome.getBoundingClientRect();
+            resizeState = {
+              windowId: handle.dataset.windowId,
+              startX: e.clientX,
+              startY: e.clientY,
+              startW: rect.width,
+              startH: rect.height,
+            };
+            return;
+          }
+
+          if (document.body.dataset.layout === "narrow") return;
+          const bar = e.target.closest('[data-action="move-window"]');
+          if (!bar || e.target.closest('[data-action="close-window"]')) return;
+          const chrome = bar.closest(".uw-window-chrome");
+          if (!chrome) return;
           e.preventDefault();
-          const win = handle.closest(".uw-window-chrome");
-          if (!win) return;
-          const rect = win.getBoundingClientRect();
-          resizeState = {
-            windowId: handle.dataset.windowId,
+          const desk = desktopRect();
+          const rect = chrome.getBoundingClientRect();
+          dragState = {
+            windowId: bar.dataset.windowId,
+            widgetId: chrome.dataset.widgetId,
             startX: e.clientX,
             startY: e.clientY,
-            startW: rect.width,
-            startH: rect.height,
+            startLeft: rect.left - desk.left,
+            startTop: rect.top - desk.top,
           };
         });
 
         window.addEventListener("mousemove", (e) => {
+          if (dragState) {
+            const x = Math.max(
+              0,
+              Math.round(dragState.startLeft + (e.clientX - dragState.startX)),
+            );
+            const y = Math.max(
+              0,
+              Math.round(dragState.startTop + (e.clientY - dragState.startY)),
+            );
+            const win = root.querySelector(
+              `[data-window-id="${dragState.windowId}"]`,
+            );
+            if (win) {
+              win.style.left = `${x}px`;
+              win.style.top = `${y}px`;
+            }
+            dragState.x = x;
+            dragState.y = y;
+            return;
+          }
           if (!resizeState) return;
           const width = Math.max(
             280,
@@ -219,6 +306,32 @@
         });
 
         window.addEventListener("mouseup", () => {
+          if (dragState) {
+            const moved =
+              dragState.x != null &&
+              (Math.abs(dragState.x - dragState.startLeft) > 3 ||
+                Math.abs(dragState.y - dragState.startTop) > 3);
+            if (moved) {
+              suppressClick = true;
+              parent.postMessage(
+                {
+                  source: "universal-viewport",
+                  type: "click",
+                  targetId: dragState.widgetId,
+                  value: {
+                    action: "move",
+                    windowId: dragState.windowId,
+                    x: dragState.x,
+                    y: dragState.y,
+                  },
+                  behavior: "local",
+                },
+                "*",
+              );
+            }
+            dragState = null;
+            return;
+          }
           if (!resizeState || resizeState.width == null) {
             resizeState = null;
             return;

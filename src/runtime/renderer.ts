@@ -16,7 +16,9 @@ const VIEWPORT_CSS = `
   :focus-visible { outline: 3px solid var(--uw-accent, #007aff); outline-offset: 2px; }
   .uw-window-chrome:focus-visible { outline: 3px solid var(--uw-accent, #007aff); outline-offset: 2px; }
   .uw-window-chrome { position: absolute; background: var(--uw-window-bg, #fff); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.28); display: flex; flex-direction: column; overflow: hidden; }
-  .uw-titlebar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--uw-titlebar-bg, #f0f0f0); border-bottom: 1px solid #ddd; color: var(--uw-text, #111); }
+  .uw-titlebar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--uw-titlebar-bg, #f0f0f0); border-bottom: 1px solid #ddd; color: var(--uw-text, #111); cursor: grab; user-select: none; }
+  .uw-titlebar:active { cursor: grabbing; }
+  .uw-window-controls .close { cursor: pointer; }
   .uw-window-controls .close { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; cursor: pointer; border: none; padding: 0; }
   .uw-window-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; }
   .uw-window-body { flex: 1; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
@@ -74,6 +76,7 @@ const VIEWPORT_CSS = `
     .uw-desktop, .desktop { overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 8px; }
     .uw-window-chrome { position: relative !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; min-height: 220px; max-width: 100%; }
     .uw-resize-handle { display: none; }
+    .uw-titlebar { cursor: default; }
     .uw-dock, .dock { flex-wrap: wrap; justify-content: center; gap: 4px; padding: 6px 8px; max-width: calc(100% - 16px); }
     .uw-dock-icon, .dock-icon { min-width: 40px; min-height: 40px; font-size: 24px; }
     .uw-dialog-card { min-width: 0; max-width: calc(100cqi - 24px); }

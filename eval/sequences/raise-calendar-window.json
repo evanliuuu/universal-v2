@@ -1,0 +1,23 @@
+{
+  "name": "raise-calendar-window",
+  "description": "Clicking a window raises it above the others",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": {
+        "type": "click",
+        "targetId": "calendar-root",
+        "value": { "action": "raise", "windowId": "win-calendar" }
+      },
+      "assert": { "path": "/windows/win-calendar/z", "eq": 2 },
+      "expectTier": "reflex"
+    }
+  ]
+}
