@@ -226,6 +226,22 @@ body {
   min-width: 200px;
 }
 
+.debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  user-select: none;
+}
+
+.debug-toggle input {
+  margin: 0;
+}
+
+.debug-panel[hidden] {
+  display: none;
+}
+
 .panel pre {
   margin: 0 0 12px;
   padding: 10px;

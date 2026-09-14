@@ -31,6 +31,10 @@
           </label>
           <button id="reset-btn" type="button">Reset</button>
           <button id="clear-db-btn" type="button" title="Clear IndexedDB and reset">Clear DB</button>
+          <label class="debug-toggle">
+            <input id="debug-toggle" type="checkbox" />
+            Debug
+          </label>
         </div>
       </header>
       <div class="workspace">
@@ -56,10 +60,12 @@
             <p id="viewport-stats" class="meta"></p>
             <p id="stats" class="meta"></p>
           </div>
-          <h2>Event log</h2>
-          <pre id="event-log"></pre>
-          <h2>State</h2>
-          <pre id="state-view"></pre>
+          <section id="debug-panel" class="debug-panel" hidden>
+            <h2>Event log</h2>
+            <pre id="event-log"></pre>
+            <h2>State</h2>
+            <pre id="state-view"></pre>
+          </section>
         </aside>
         <main class="viewport-wrap">
           <iframe

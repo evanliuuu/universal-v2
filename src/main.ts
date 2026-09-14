@@ -38,6 +38,14 @@ const shareBtn = document.getElementById("share-btn")!;
 const importInput = document.getElementById("import-input") as HTMLInputElement;
 const instructBtn = document.getElementById("instruct-btn")!;
 const instructInput = document.getElementById("instruct-input") as HTMLInputElement;
+const debugToggle = document.getElementById("debug-toggle") as HTMLInputElement;
+const debugPanel = document.getElementById("debug-panel")!;
+
+function applyDebugMode() {
+  const on = debugToggle.checked;
+  debugPanel.hidden = !on;
+  document.body.dataset.debug = on ? "on" : "off";
+}
 
 function syncApiBase(): string | null {
   const explicit = import.meta.env.VITE_SYNC_API_URL as string | undefined;
@@ -64,6 +72,9 @@ function syncStatus(runtime: UniversalRuntime): string {
 }
 
 async function boot() {
+  applyDebugMode();
+  debugToggle.addEventListener("change", applyDebugMode);
+
   const persistence = new SessionPersistence();
   await persistence.init();
 
