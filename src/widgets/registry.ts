@@ -1,4 +1,4 @@
-import { WidgetNode, WidgetType } from "../protocol/types";
+import { WidgetNode, WidgetType, WindowState } from "../protocol/types";
 import {
   listItemId,
   listItemLabel,
@@ -12,17 +12,7 @@ import {
 
 export type RenderContext = {
   doc: { ui: { rootId: string; widgets: Record<string, WidgetNode> } };
-  windows: Record<
-    string,
-    {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      title: string;
-      minimized: boolean;
-    }
-  >;
+  windows: Record<string, WindowState>;
 };
 
 export type WidgetRenderer = (
