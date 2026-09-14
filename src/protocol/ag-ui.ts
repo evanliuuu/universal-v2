@@ -71,3 +71,16 @@ export function encodeRunFinished(
     latencyMs,
   };
 }
+
+export function encodePrefetchHit(
+  sessionId: string,
+  key: string,
+  latencyMs: number,
+) {
+  return {
+    type: "PREFETCH_HIT" as const,
+    sessionId,
+    key,
+    latencyMs,
+  };
+}
