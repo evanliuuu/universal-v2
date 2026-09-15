@@ -1,6 +1,7 @@
 name = "universal-v2"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+workers_dev = true
 
 [vars]
 # Optional: set UNIVERSAL_API_SECRET in the dashboard / .dev.vars
@@ -9,6 +10,7 @@ compatibility_date = "2024-12-01"
 name = "SESSIONS"
 class_name = "SessionDurableObject"
 
+# Free plan requires SQLite-backed DO namespaces (new_sqlite_classes).
 [[migrations]]
 tag = "v1"
-new_classes = ["SessionDurableObject"]
+new_sqlite_classes = ["SessionDurableObject"]

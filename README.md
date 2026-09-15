@@ -21,23 +21,29 @@ Copy `.env.example` → `.env` if you want OpenRouter or websocket sync.
 
 ### Cloud sync (Phase 8)
 
+Deployed Worker (no local Node required):
+
+- API: `https://universal-v2.evanliuuu.workers.dev`
+- WS: `wss://universal-v2.evanliuuu.workers.dev/ws`
+
 ```bash
 cd cloud && npm install
-npm run cloud:dev      # wrangler durable object on :8787-ish
-# or
-npm run cloud:deploy   # then point VITE_WS_URL / VITE_SYNC_API_URL at the worker
+npm run cloud:deploy   # wrangler deploy
+# point .env at the workers.dev URLs (see .env.example), then npm run dev
 ```
 
 1. Open the app, click **Share** (creates a tokenized session).
-2. Open the copied `?session=&token=` URL in a second browser.
-3. Both clients sync over `wss://` via a Durable Object — no local Node server required after deploy.
+2. Open the copied `?session=&token=` URL in a second browser / profile.
+3. Both clients sync over `wss://` via a Durable Object.
 
-Prove locally without UI:
+Prove without UI:
 
 ```bash
-npm run cloud:dev          # wrangler DO on :8787
-npm run smoke:sync         # two WS clients + conflict checks
+npm run smoke:sync -- https://universal-v2.evanliuuu.workers.dev
+# or locally: npm run cloud:dev && npm run smoke:sync
 ```
+
+Free-plan Durable Objects use a SQLite-backed migration (`new_sqlite_classes` in `cloud/wrangler.toml`).
 
 Conflict policy is seq-ordered: deltas must be `serverSeq + 1`; snapshots catch up when `seq >= serverSeq`. Bad tokens are rejected.
 
