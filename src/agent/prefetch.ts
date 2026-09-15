@@ -28,6 +28,11 @@ export class PrefetchCache {
     return this.cache.has(eventKey(event));
   }
 
+  /** Drop a cached prediction by wire key (peer already consumed it). */
+  drop(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
   markInFlight(key: string) {
     this.inFlight.add(key);
   }

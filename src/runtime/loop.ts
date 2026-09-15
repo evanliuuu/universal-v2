@@ -179,6 +179,12 @@ export class UniversalRuntime {
       const statePatch = msg.type === "STATE_DELTA" ? msg.patch : [];
       const uiPatch = msg.type === "UI_DELTA" ? msg.patch : [];
       await this.applyRemoteDelta(msg.seq, statePatch, uiPatch);
+      return;
+    }
+
+    if (msg.type === "PREFETCH_HIT" && typeof msg.key === "string") {
+      this.prefetch.drop(msg.key);
+      this.onStats?.();
     }
   }
 
@@ -578,6 +584,13 @@ export class UniversalRuntime {
         opts.tier,
         opts.latencyMs,
       );
+      if (opts.prefetchHit) {
+        this.wsSync?.pushPrefetchHit(
+          sessionId,
+          eventKey(opts.event),
+          opts.latencyMs,
+        );
+      }
     }
 
     if (opts.seq % KEYFRAME_EVERY_N_EVENTS === 0) {
