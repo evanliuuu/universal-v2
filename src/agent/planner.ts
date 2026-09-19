@@ -5,6 +5,7 @@ export type AgentPlan = {
   action:
     | "open_app"
     | "focus_app"
+    | "close_app"
     | "set_theme"
     | "set_budget"
     | "noop";
@@ -27,6 +28,36 @@ function planForApp(
     return { action: "focus_app", app: app.id, rationale };
   }
   return { action: "open_app", app: app.id, rationale };
+}
+
+function appNames(app: { id: string; title: string; aliases?: string[] }): string[] {
+  return [app.id, app.title, ...(app.aliases ?? [])].map((n) => n.toLowerCase());
+}
+
+function mentionsApp(
+  lower: string,
+  app: { id: string; title: string; aliases?: string[] },
+): boolean {
+  return appNames(app).some((name) => lower.includes(name));
+}
+
+function isCloseIntent(lower: string): boolean {
+  return /\b(close|shut|dismiss)\b/.test(lower);
+}
+
+function planCloseApp(
+  appId: string,
+  state: UniversalState,
+  rationale: string,
+): AgentPlan {
+  const app = listApps().find((a) => a.id === appId);
+  if (!app) {
+    return { action: "noop", rationale: `Unknown app ${appId}` };
+  }
+  if (!state.windows[app.windowId]) {
+    return { action: "noop", rationale: `${app.title} is not open.` };
+  }
+  return { action: "close_app", app: app.id, rationale };
 }
 
 /** Planner: decide *what* to do from (state, event). No patches yet. */
@@ -63,11 +94,22 @@ export function parseInstruction(
 ): AgentPlan {
   const lower = text.toLowerCase();
 
+  if (isCloseIntent(lower)) {
+    for (const app of listApps()) {
+      if (mentionsApp(lower, app)) {
+        return planCloseApp(app.id, state, text);
+      }
+    }
+    const focusedId = state.focus?.windowId;
+    if (focusedId) {
+      const focused = listApps().find((app) => app.windowId === focusedId);
+      if (focused) return planCloseApp(focused.id, state, text);
+    }
+    return { action: "noop", rationale: `Nothing to close: ${text}` };
+  }
+
   for (const app of listApps()) {
-    const names = [app.id, app.title, ...(app.aliases ?? [])].map((n) =>
-      n.toLowerCase(),
-    );
-    if (names.some((name) => lower.includes(name))) {
+    if (mentionsApp(lower, app)) {
       return planForApp(app.id, state, text);
     }
   }

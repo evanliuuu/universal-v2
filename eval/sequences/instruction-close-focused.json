@@ -1,0 +1,15 @@
+{
+  "name": "instruction-close-focused",
+  "description": "Close this window closes the focused app without naming it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "close this window" },
+      "assert": { "path": "/windows/win-notes", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

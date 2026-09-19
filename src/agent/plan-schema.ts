@@ -1,7 +1,14 @@
 import { z } from "zod";
 
 export const AgentPlanSchema = z.object({
-  action: z.enum(["open_app", "focus_app", "set_theme", "set_budget", "noop"]),
+  action: z.enum([
+    "open_app",
+    "focus_app",
+    "close_app",
+    "set_theme",
+    "set_budget",
+    "noop",
+  ]),
   app: z.string().optional(),
   theme: z.string().optional(),
   tokenLimit: z.number().optional(),

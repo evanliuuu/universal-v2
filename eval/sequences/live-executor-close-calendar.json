@@ -1,0 +1,27 @@
+{
+  "name": "live-executor-close-calendar",
+  "description": "Model-emitted close patches via live executor path",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "close the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "remove", "path": "/windows/win-calendar" },
+          { "op": "replace", "path": "/widgets/desktop/children", "value": [] },
+          { "op": "remove", "path": "/widgets/calendar-root" },
+          { "op": "replace", "path": "/focus", "value": { "widgetId": "dock-calendar" } }
+        ],
+        "uiPatch": [],
+        "rationale": "Closing calendar from model patches."
+      },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
