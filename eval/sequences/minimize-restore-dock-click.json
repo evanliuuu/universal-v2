@@ -1,0 +1,20 @@
+{
+  "name": "minimize-restore-dock-click",
+  "description": "Clicking a dock icon restores a minimized window locally",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

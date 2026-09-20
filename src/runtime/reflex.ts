@@ -187,6 +187,25 @@ export function tryReflex(
     return { handled: true, statePatch: raisePatches(doc, moveWinId), uiPatch: [] };
   }
 
+  if (event.type === "click" && event.targetId) {
+    const dockApp = listApps().find((app) => app.dockId === event.targetId);
+    const dockWin = dockApp ? doc.state.windows[dockApp.windowId] : undefined;
+    if (dockApp && dockWin?.minimized) {
+      return {
+        handled: true,
+        statePatch: [
+          {
+            op: "replace",
+            path: `/windows/${dockApp.windowId}/minimized`,
+            value: false,
+          },
+          ...raisePatches(doc, dockApp.windowId),
+        ],
+        uiPatch: [],
+      };
+    }
+  }
+
   for (const app of listApps()) {
     if (!app.reflex) continue;
     const result = app.reflex(doc, event);

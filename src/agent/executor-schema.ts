@@ -14,6 +14,7 @@ export const LIVE_EXECUTOR_ACTIONS = [
   "open_app",
   "focus_app",
   "close_app",
+  "minimize_app",
   "set_theme",
   "set_budget",
 ] as const;

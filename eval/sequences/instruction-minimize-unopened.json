@@ -1,0 +1,11 @@
+{
+  "name": "instruction-minimize-unopened",
+  "description": "Minimizing an app that is not open is a noop and does not open it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "minimize calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ export type AgentPlan = {
     | "open_app"
     | "focus_app"
     | "close_app"
+    | "minimize_app"
     | "set_theme"
     | "set_budget"
     | "noop";
@@ -45,6 +46,10 @@ function isCloseIntent(lower: string): boolean {
   return /\b(close|shut|dismiss)\b/.test(lower);
 }
 
+function isMinimizeIntent(lower: string): boolean {
+  return /\b(minimize|minimise)\b/.test(lower);
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -58,6 +63,21 @@ function planCloseApp(
     return { action: "noop", rationale: `${app.title} is not open.` };
   }
   return { action: "close_app", app: app.id, rationale };
+}
+
+function planMinimizeApp(
+  appId: string,
+  state: UniversalState,
+  rationale: string,
+): AgentPlan {
+  const app = listApps().find((a) => a.id === appId);
+  if (!app) {
+    return { action: "noop", rationale: `Unknown app ${appId}` };
+  }
+  if (!state.windows[app.windowId]) {
+    return { action: "noop", rationale: `${app.title} is not open.` };
+  }
+  return { action: "minimize_app", app: app.id, rationale };
 }
 
 /** Planner: decide *what* to do from (state, event). No patches yet. */
@@ -106,6 +126,20 @@ export function parseInstruction(
       if (focused) return planCloseApp(focused.id, state, text);
     }
     return { action: "noop", rationale: `Nothing to close: ${text}` };
+  }
+
+  if (isMinimizeIntent(lower)) {
+    for (const app of listApps()) {
+      if (mentionsApp(lower, app)) {
+        return planMinimizeApp(app.id, state, text);
+      }
+    }
+    const focusedId = state.focus?.windowId;
+    if (focusedId) {
+      const focused = listApps().find((app) => app.windowId === focusedId);
+      if (focused) return planMinimizeApp(focused.id, state, text);
+    }
+    return { action: "noop", rationale: `Nothing to minimize: ${text}` };
   }
 
   for (const app of listApps()) {

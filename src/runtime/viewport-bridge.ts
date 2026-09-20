@@ -1,7 +1,7 @@
 import { renderTree } from "../widgets/registry";
 import { VIEWPORT_CSS } from "./renderer";
 import { UniversalDocument } from "../state/patch";
-import { WidgetNode } from "../protocol/types";
+import { WidgetNode, WindowState } from "../protocol/types";
 import { diffWidgets } from "../state/widget-diff";
 import { detectDrift } from "../state/drift";
 import { normalizeTheme, themeVariables } from "../themes/index";
@@ -16,6 +16,13 @@ export type ViewportPaintStats = {
   patchBatches: number;
   patchesSent: number;
 };
+
+function windowVisibilityKey(windows: Record<string, WindowState>): string {
+  return Object.values(windows)
+    .map((win) => `${win.id}:${win.minimized ? 1 : 0}`)
+    .sort()
+    .join(",");
+}
 
 function scheduleFrame(fn: () => void): number {
   if (typeof requestAnimationFrame === "function") {
@@ -42,6 +49,7 @@ export class ViewportBridge {
   private lastDriftReason?: string;
   private currentTheme = "cupertino";
   private currentThemeVars = "";
+  private windowVisibility = "";
   private pending: UniversalDocument | null = null;
   private raf = 0;
   private fullRenders = 0;
@@ -69,6 +77,7 @@ export class ViewportBridge {
     this.lastDriftReason = undefined;
     this.currentTheme = "cupertino";
     this.currentThemeVars = "";
+    this.windowVisibility = "";
     this.fullRenders = 0;
     this.patchBatches = 0;
     this.patchesSent = 0;
@@ -139,6 +148,10 @@ export class ViewportBridge {
     if (themeChanged) forceFull = true;
     this.currentTheme = theme;
     this.currentThemeVars = themeVarsKey;
+
+    const visibility = windowVisibilityKey(doc.state.windows);
+    if (visibility !== this.windowVisibility) forceFull = true;
+    this.windowVisibility = visibility;
 
     const css = `${VIEWPORT_CSS}\n${themeVariables(theme, themeVars)}`;
 

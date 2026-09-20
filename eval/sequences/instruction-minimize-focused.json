@@ -1,0 +1,15 @@
+{
+  "name": "instruction-minimize-focused",
+  "description": "Minimize this window hides the focused app without naming it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize this window" },
+      "assert": { "path": "/windows/win-notes/minimized", "eq": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

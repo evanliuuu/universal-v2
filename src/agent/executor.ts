@@ -38,12 +38,37 @@ export function executePlan(
       if (!plan.app) break;
       const app = getApp(plan.app);
       if (!app) break;
+      const statePatch: JsonPatchOp[] = [];
+      if (state?.windows[app.windowId]?.minimized) {
+        statePatch.push({
+          op: "replace",
+          path: `/windows/${app.windowId}/minimized`,
+          value: false,
+        });
+      }
+      statePatch.push({
+        op: "replace",
+        path: "/focus",
+        value: { windowId: app.windowId, widgetId: app.dockId },
+      });
+      return {
+        statePatch,
+        uiPatch: [],
+        rationale: plan.rationale,
+      };
+    }
+    case "minimize_app": {
+      if (!plan.app || !state) break;
+      const app = getApp(plan.app);
+      if (!app) break;
+      const win = state.windows[app.windowId];
+      if (!win) break;
       return {
         statePatch: [
           {
             op: "replace",
-            path: "/focus",
-            value: { windowId: app.windowId, widgetId: app.dockId },
+            path: `/windows/${app.windowId}/minimized`,
+            value: true,
           },
         ],
         uiPatch: [],

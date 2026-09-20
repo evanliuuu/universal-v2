@@ -618,6 +618,36 @@ function checkWidgetA11y(): boolean {
   cases.push(["file list is a listbox", filesHtml.includes('role="listbox"')]);
   cases.push(["file rows are options", filesHtml.includes('role="option"')]);
 
+  const minPlan = planMock(
+    opened.doc.state,
+    createSemanticEvent({ type: "instruction", value: "minimize files" }),
+  );
+  const minResponse = executePlan(minPlan, opened.doc.state);
+  const hidden = safeApplyPatches(
+    opened.doc,
+    minResponse.statePatch,
+    minResponse.uiPatch,
+  );
+  if (!hidden.ok) {
+    console.log("  ✗ could not minimize files for a11y");
+    return false;
+  }
+  const hiddenHtml = renderTree({
+    doc: {
+      ui: {
+        rootId: hidden.doc.ui.rootId,
+        widgets: hidden.doc.state.widgets,
+      },
+    },
+    windows: hidden.doc.state.windows,
+  });
+  cases.push([
+    "minimized window is omitted",
+    hidden.doc.state.windows["win-files"]?.minimized === true &&
+      !hiddenHtml.includes('data-window-id="win-files"') &&
+      !hiddenHtml.includes('aria-label="Close Files"'),
+  ]);
+
   let passed = 0;
   for (const [name, ok] of cases) {
     console.log(`  ${ok ? "✓" : "✗"} ${name}`);
