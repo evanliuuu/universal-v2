@@ -18,8 +18,11 @@ const VIEWPORT_CSS = `
   .uw-window-chrome { position: absolute; background: var(--uw-window-bg, #fff); border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.28); display: flex; flex-direction: column; overflow: hidden; }
   .uw-titlebar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--uw-titlebar-bg, #f0f0f0); border-bottom: 1px solid #ddd; color: var(--uw-text, #111); cursor: grab; user-select: none; }
   .uw-titlebar:active { cursor: grabbing; }
-  .uw-window-controls .close { cursor: pointer; }
-  .uw-window-controls .close { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; cursor: pointer; border: none; padding: 0; }
+  .uw-window-controls { display: flex; align-items: center; gap: 6px; }
+  .uw-window-controls .close,
+  .uw-window-controls .minimize { display: inline-block; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; border: none; padding: 0; }
+  .uw-window-controls .close { background: #ff5f57; }
+  .uw-window-controls .minimize { background: #febc2e; }
   .uw-window-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; }
   .uw-window-body { flex: 1; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
   .uw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -99,6 +102,11 @@ export function buildViewportHtml(doc: UniversalDocument): string {
     const close = e.target.closest('[data-action="close-window"]');
     if (close) {
       parent.postMessage({ source: 'universal-viewport', type: 'close_window', windowId: close.dataset.windowId }, '*');
+      return;
+    }
+    const minimize = e.target.closest('[data-action="minimize-window"]');
+    if (minimize) {
+      parent.postMessage({ source: 'universal-viewport', type: 'minimize_window', windowId: minimize.dataset.windowId }, '*');
       return;
     }
     const el = e.target.closest('[data-widget-id]');

@@ -139,6 +139,23 @@ export function tryReflex(
     };
   }
 
+  if (event.type === "minimize_window" && event.value) {
+    const winId = String(event.value);
+    const win = doc.state.windows[winId];
+    if (!win) return empty;
+    return {
+      handled: true,
+      statePatch: [
+        {
+          op: "replace",
+          path: `/windows/${winId}/minimized`,
+          value: true,
+        },
+      ],
+      uiPatch: [],
+    };
+  }
+
   if (event.type === "resize_window" && event.value) {
     const payload = event.value as {
       windowId?: string;

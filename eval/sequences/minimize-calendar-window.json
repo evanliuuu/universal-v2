@@ -1,0 +1,20 @@
+{
+  "name": "minimize-calendar-window",
+  "description": "Minimize window via reflex traffic light hides without closing",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "minimize_window", "value": "win-calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

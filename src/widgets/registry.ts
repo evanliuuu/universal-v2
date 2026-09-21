@@ -318,7 +318,10 @@ registerWidget("window", (node, ctx, renderChild) => {
 
   return `<div ${dataAttrs(node)} class="${cls(node, "uw-window-chrome")}" style="${style}" data-window-id="${winId}" role="dialog" aria-label="${title}" tabindex="-1">
     <div class="uw-titlebar" data-action="move-window" data-window-id="${winId}">
-      <div class="uw-window-controls"><button type="button" class="close" data-action="close-window" data-window-id="${winId}" aria-label="Close ${title}"></button></div>
+      <div class="uw-window-controls">
+        <button type="button" class="close" data-action="close-window" data-window-id="${winId}" aria-label="Close ${title}"></button>
+        <button type="button" class="minimize" data-action="minimize-window" data-window-id="${winId}" aria-label="Minimize ${title}"></button>
+      </div>
       <div class="uw-window-title">${title}</div>
     </div>
     <div class="uw-window-body">${kids}</div>

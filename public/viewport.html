@@ -138,6 +138,19 @@
             return;
           }
 
+          const minimize = e.target.closest('[data-action="minimize-window"]');
+          if (minimize) {
+            parent.postMessage(
+              {
+                source: "universal-viewport",
+                type: "minimize_window",
+                windowId: minimize.dataset.windowId,
+              },
+              "*",
+            );
+            return;
+          }
+
           const closeDialog = e.target.closest('[data-action="close-dialog"]');
           if (closeDialog) {
             const dialog = closeDialog.closest("[data-widget-id]");
@@ -248,7 +261,13 @@
 
           if (document.body.dataset.layout === "narrow") return;
           const bar = e.target.closest('[data-action="move-window"]');
-          if (!bar || e.target.closest('[data-action="close-window"]')) return;
+          if (
+            !bar ||
+            e.target.closest(
+              '[data-action="close-window"], [data-action="minimize-window"]',
+            )
+          )
+            return;
           const chrome = bar.closest(".uw-window-chrome");
           if (!chrome) return;
           e.preventDefault();

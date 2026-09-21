@@ -128,6 +128,7 @@ export const SemanticEventSchema = z.object({
     "instruction",
     "open_app",
     "close_window",
+    "minimize_window",
     "resize_window",
     "move_window",
   ]),

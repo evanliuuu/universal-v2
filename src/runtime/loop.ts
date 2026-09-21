@@ -333,6 +333,16 @@ export class UniversalRuntime {
       return;
     }
 
+    if (data.type === "minimize_window") {
+      void this.dispatch(
+        createSemanticEvent({
+          type: "minimize_window",
+          value: data.windowId,
+        }),
+      );
+      return;
+    }
+
     if (data.type === "resize_window") {
       void this.dispatch(
         createSemanticEvent({
