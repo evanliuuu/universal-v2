@@ -151,6 +151,19 @@
             return;
           }
 
+          const maximize = e.target.closest('[data-action="maximize-window"]');
+          if (maximize) {
+            parent.postMessage(
+              {
+                source: "universal-viewport",
+                type: "maximize_window",
+                windowId: maximize.dataset.windowId,
+              },
+              "*",
+            );
+            return;
+          }
+
           const closeDialog = e.target.closest('[data-action="close-dialog"]');
           if (closeDialog) {
             const dialog = closeDialog.closest("[data-widget-id]");
@@ -247,7 +260,7 @@
           if (handle) {
             e.preventDefault();
             const chrome = handle.closest(".uw-window-chrome");
-            if (!chrome) return;
+            if (!chrome || chrome.dataset.maximized === "1") return;
             const rect = chrome.getBoundingClientRect();
             resizeState = {
               windowId: handle.dataset.windowId,
@@ -264,12 +277,12 @@
           if (
             !bar ||
             e.target.closest(
-              '[data-action="close-window"], [data-action="minimize-window"]',
+              '[data-action="close-window"], [data-action="minimize-window"], [data-action="maximize-window"]',
             )
           )
             return;
           const chrome = bar.closest(".uw-window-chrome");
-          if (!chrome) return;
+          if (!chrome || chrome.dataset.maximized === "1") return;
           e.preventDefault();
           const desk = desktopRect();
           const rect = chrome.getBoundingClientRect();

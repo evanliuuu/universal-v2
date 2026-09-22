@@ -82,6 +82,7 @@ export const WindowStateSchema = z.object({
   height: z.number().default(360),
   rootId: z.string(),
   minimized: z.boolean().default(false),
+  maximized: z.boolean().default(false),
   z: z.number().default(1),
 });
 
@@ -129,6 +130,7 @@ export const SemanticEventSchema = z.object({
     "open_app",
     "close_window",
     "minimize_window",
+    "maximize_window",
     "resize_window",
     "move_window",
   ]),

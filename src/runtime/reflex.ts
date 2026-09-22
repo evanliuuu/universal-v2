@@ -156,6 +156,23 @@ export function tryReflex(
     };
   }
 
+  if (event.type === "maximize_window" && event.value) {
+    const winId = String(event.value);
+    const win = doc.state.windows[winId];
+    if (!win) return empty;
+    return {
+      handled: true,
+      statePatch: [
+        {
+          op: "replace",
+          path: `/windows/${winId}/maximized`,
+          value: !win.maximized,
+        },
+      ],
+      uiPatch: [],
+    };
+  }
+
   if (event.type === "resize_window" && event.value) {
     const payload = event.value as {
       windowId?: string;

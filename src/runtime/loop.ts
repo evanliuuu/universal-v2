@@ -343,6 +343,16 @@ export class UniversalRuntime {
       return;
     }
 
+    if (data.type === "maximize_window") {
+      void this.dispatch(
+        createSemanticEvent({
+          type: "maximize_window",
+          value: data.windowId,
+        }),
+      );
+      return;
+    }
+
     if (data.type === "resize_window") {
       void this.dispatch(
         createSemanticEvent({

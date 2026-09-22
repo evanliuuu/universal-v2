@@ -1,0 +1,20 @@
+{
+  "name": "maximize-calendar-window",
+  "description": "Maximize window via reflex traffic light fills the desktop without closing",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "maximize_window", "value": "win-calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": true },
+      "expectTier": "reflex"
+    },
+    {
+      "event": { "type": "maximize_window", "value": "win-calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

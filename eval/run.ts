@@ -616,6 +616,7 @@ function checkWidgetA11y(): boolean {
   cases.push(["window is a labeled dialog", filesHtml.includes('aria-label="Files"')]);
   cases.push(["close control is a button", filesHtml.includes('aria-label="Close Files"')]);
   cases.push(["minimize control is a button", filesHtml.includes('aria-label="Minimize Files"')]);
+  cases.push(["maximize control is a button", filesHtml.includes('aria-label="Maximize Files"')]);
   cases.push(["file list is a listbox", filesHtml.includes('role="listbox"')]);
   cases.push(["file rows are options", filesHtml.includes('role="option"')]);
 
@@ -647,7 +648,8 @@ function checkWidgetA11y(): boolean {
     hidden.doc.state.windows["win-files"]?.minimized === true &&
       !hiddenHtml.includes('data-window-id="win-files"') &&
       !hiddenHtml.includes('aria-label="Close Files"') &&
-      !hiddenHtml.includes('aria-label="Minimize Files"'),
+      !hiddenHtml.includes('aria-label="Minimize Files"') &&
+      !hiddenHtml.includes('aria-label="Maximize Files"'),
   ]);
 
   let passed = 0;

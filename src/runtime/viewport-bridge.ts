@@ -19,7 +19,7 @@ export type ViewportPaintStats = {
 
 function windowVisibilityKey(windows: Record<string, WindowState>): string {
   return Object.values(windows)
-    .map((win) => `${win.id}:${win.minimized ? 1 : 0}`)
+    .map((win) => `${win.id}:${win.minimized ? 1 : 0}:${win.maximized ? 1 : 0}`)
     .sort()
     .join(",");
 }

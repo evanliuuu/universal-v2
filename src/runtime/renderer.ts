@@ -20,9 +20,12 @@ const VIEWPORT_CSS = `
   .uw-titlebar:active { cursor: grabbing; }
   .uw-window-controls { display: flex; align-items: center; gap: 6px; }
   .uw-window-controls .close,
-  .uw-window-controls .minimize { display: inline-block; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; border: none; padding: 0; }
+  .uw-window-controls .minimize,
+  .uw-window-controls .maximize { display: inline-block; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; border: none; padding: 0; }
   .uw-window-controls .close { background: #ff5f57; }
   .uw-window-controls .minimize { background: #febc2e; }
+  .uw-window-controls .maximize { background: #28c840; }
+  .uw-window-chrome.maximized .uw-resize-handle { display: none; }
   .uw-window-title { flex: 1; text-align: center; font-size: 13px; font-weight: 600; }
   .uw-window-body { flex: 1; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
   .uw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -107,6 +110,11 @@ export function buildViewportHtml(doc: UniversalDocument): string {
     const minimize = e.target.closest('[data-action="minimize-window"]');
     if (minimize) {
       parent.postMessage({ source: 'universal-viewport', type: 'minimize_window', windowId: minimize.dataset.windowId }, '*');
+      return;
+    }
+    const maximize = e.target.closest('[data-action="maximize-window"]');
+    if (maximize) {
+      parent.postMessage({ source: 'universal-viewport', type: 'maximize_window', windowId: maximize.dataset.windowId }, '*');
       return;
     }
     const el = e.target.closest('[data-widget-id]');
