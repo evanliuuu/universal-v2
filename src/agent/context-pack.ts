@@ -27,7 +27,7 @@ export type PlannerContext = {
   focus: { window?: FocusedWindow; widget?: FocusedWidget };
   openApps: string[];
   dock: string[];
-  windows: Array<{ id: string; title: string; minimized: boolean }>;
+  windows: Array<{ id: string; title: string; minimized: boolean; maximized: boolean }>;
   budget: {
     tokensUsed: number;
     tokenLimit: number;
@@ -113,6 +113,7 @@ export function buildPlannerContext(
       id: win.id,
       title: win.title,
       minimized: win.minimized,
+      maximized: win.maximized,
     })),
     budget: {
       tokensUsed: state.meta.budget.tokensUsed,

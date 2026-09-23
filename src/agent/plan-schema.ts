@@ -6,6 +6,7 @@ export const AgentPlanSchema = z.object({
     "focus_app",
     "close_app",
     "minimize_app",
+    "maximize_app",
     "set_theme",
     "set_budget",
     "noop",

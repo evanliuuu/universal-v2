@@ -75,6 +75,31 @@ export function executePlan(
         rationale: plan.rationale,
       };
     }
+    case "maximize_app": {
+      if (!plan.app || !state) break;
+      const app = getApp(plan.app);
+      if (!app) break;
+      const win = state.windows[app.windowId];
+      if (!win) break;
+      const statePatch: JsonPatchOp[] = [];
+      if (win.minimized) {
+        statePatch.push({
+          op: "replace",
+          path: `/windows/${app.windowId}/minimized`,
+          value: false,
+        });
+      }
+      statePatch.push({
+        op: "replace",
+        path: `/windows/${app.windowId}/maximized`,
+        value: true,
+      });
+      return {
+        statePatch,
+        uiPatch: [],
+        rationale: plan.rationale,
+      };
+    }
     case "close_app": {
       if (!plan.app || !state) break;
       const app = getApp(plan.app);

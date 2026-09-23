@@ -1,0 +1,15 @@
+{
+  "name": "instruction-maximize-focused",
+  "description": "Maximize this window fills the focused app without naming it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize this window" },
+      "assert": { "path": "/windows/win-notes/maximized", "eq": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "instruction-maximize-calendar",
+  "description": "NL maximize instruction fills an open calendar window without closing it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

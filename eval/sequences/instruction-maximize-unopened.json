@@ -1,0 +1,11 @@
+{
+  "name": "instruction-maximize-unopened",
+  "description": "Maximizing an app that is not open is a noop and does not open it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "maximize calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
