@@ -1,0 +1,19 @@
+{
+  "name": "instruction-restore-calendar",
+  "description": "NL restore/unmaximize instruction shrinks an open calendar window without closing it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "restore calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

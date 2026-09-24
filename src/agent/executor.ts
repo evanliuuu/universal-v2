@@ -100,6 +100,24 @@ export function executePlan(
         rationale: plan.rationale,
       };
     }
+    case "unmaximize_app": {
+      if (!plan.app || !state) break;
+      const app = getApp(plan.app);
+      if (!app) break;
+      const win = state.windows[app.windowId];
+      if (!win) break;
+      return {
+        statePatch: [
+          {
+            op: "replace",
+            path: `/windows/${app.windowId}/maximized`,
+            value: false,
+          },
+        ],
+        uiPatch: [],
+        rationale: plan.rationale,
+      };
+    }
     case "close_app": {
       if (!plan.app || !state) break;
       const app = getApp(plan.app);

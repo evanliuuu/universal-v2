@@ -1,0 +1,11 @@
+{
+  "name": "instruction-restore-unopened",
+  "description": "Restoring an app that is not open is a noop and does not open it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "restore calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

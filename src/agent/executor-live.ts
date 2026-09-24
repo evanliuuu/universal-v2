@@ -34,6 +34,7 @@ Rules:
 - focus_app: replace /focus with { windowId: "win-<app>", widgetId: "dock-<app>" }; if that window is minimized, also replace /windows/win-<app>/minimized with false
 - minimize_app: replace /windows/win-<app>/minimized with true
 - maximize_app: replace /windows/win-<app>/maximized with true; if that window is minimized, also replace /windows/win-<app>/minimized with false
+- unmaximize_app: replace /windows/win-<app>/maximized with false
 - close_app: remove /windows/win-<app>, drop the window root from /widgets/desktop/children, remove /widgets/<rootId>, and clear /focus.windowId if it pointed at that window
 - open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
 - Prefer small valid patches. Widget types: box, text, label, button, input, list, tabs, table, form, checkbox, select, slider, divider, scroll-area, menu, dialog, icon, image, window

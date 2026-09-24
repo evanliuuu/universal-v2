@@ -8,6 +8,7 @@ export type AgentPlan = {
     | "close_app"
     | "minimize_app"
     | "maximize_app"
+    | "unmaximize_app"
     | "set_theme"
     | "set_budget"
     | "noop";
@@ -58,6 +59,14 @@ function isMaximizeIntent(lower: string): boolean {
   );
 }
 
+function isUnmaximizeIntent(lower: string): boolean {
+  return (
+    /\b(unmaximize|unmaximise|restore)\b/.test(lower) ||
+    /\bexit\s+(full-?screen|fullscreen)\b/.test(lower) ||
+    lower.includes("exit full screen")
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -101,6 +110,21 @@ function planMaximizeApp(
     return { action: "noop", rationale: `${app.title} is not open.` };
   }
   return { action: "maximize_app", app: app.id, rationale };
+}
+
+function planUnmaximizeApp(
+  appId: string,
+  state: UniversalState,
+  rationale: string,
+): AgentPlan {
+  const app = listApps().find((a) => a.id === appId);
+  if (!app) {
+    return { action: "noop", rationale: `Unknown app ${appId}` };
+  }
+  if (!state.windows[app.windowId]) {
+    return { action: "noop", rationale: `${app.title} is not open.` };
+  }
+  return { action: "unmaximize_app", app: app.id, rationale };
 }
 
 /** Planner: decide *what* to do from (state, event). No patches yet. */
@@ -163,6 +187,20 @@ export function parseInstruction(
       if (focused) return planMinimizeApp(focused.id, state, text);
     }
     return { action: "noop", rationale: `Nothing to minimize: ${text}` };
+  }
+
+  if (isUnmaximizeIntent(lower)) {
+    for (const app of listApps()) {
+      if (mentionsApp(lower, app)) {
+        return planUnmaximizeApp(app.id, state, text);
+      }
+    }
+    const focusedId = state.focus?.windowId;
+    if (focusedId) {
+      const focused = listApps().find((app) => app.windowId === focusedId);
+      if (focused) return planUnmaximizeApp(focused.id, state, text);
+    }
+    return { action: "noop", rationale: `Nothing to restore: ${text}` };
   }
 
   if (isMaximizeIntent(lower)) {
