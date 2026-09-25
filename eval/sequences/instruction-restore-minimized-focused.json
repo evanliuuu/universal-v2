@@ -1,0 +1,19 @@
+{
+  "name": "instruction-restore-minimized-focused",
+  "description": "Restore this window unminimizes the focused app when it is not maximized",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize this window" },
+      "assert": { "path": "/windows/win-notes/minimized", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "restore this window" },
+      "assert": { "path": "/windows/win-notes/minimized", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

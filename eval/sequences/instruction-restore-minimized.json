@@ -1,0 +1,19 @@
+{
+  "name": "instruction-restore-minimized",
+  "description": "NL restore instruction unminimizes an open calendar that is not maximized",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "restore calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

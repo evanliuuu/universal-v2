@@ -59,9 +59,13 @@ function isMaximizeIntent(lower: string): boolean {
   );
 }
 
+function isRestoreIntent(lower: string): boolean {
+  return /\brestore\b/.test(lower);
+}
+
 function isUnmaximizeIntent(lower: string): boolean {
   return (
-    /\b(unmaximize|unmaximise|restore)\b/.test(lower) ||
+    /\b(unmaximize|unmaximise)\b/.test(lower) ||
     /\bexit\s+(full-?screen|fullscreen)\b/.test(lower) ||
     lower.includes("exit full screen")
   );
@@ -127,6 +131,27 @@ function planUnmaximizeApp(
   return { action: "unmaximize_app", app: app.id, rationale };
 }
 
+function planRestoreApp(
+  appId: string,
+  state: UniversalState,
+  rationale: string,
+): AgentPlan {
+  const app = listApps().find((a) => a.id === appId);
+  if (!app) {
+    return { action: "noop", rationale: `Unknown app ${appId}` };
+  }
+  const win = state.windows[app.windowId];
+  if (!win) {
+    return { action: "noop", rationale: `${app.title} is not open.` };
+  }
+  // Minimized-only windows come back via focus (unminimize + raise).
+  // Maximized windows still unmaximize; exit-fullscreen stays on that path.
+  if (win.minimized && !win.maximized) {
+    return { action: "focus_app", app: app.id, rationale };
+  }
+  return { action: "unmaximize_app", app: app.id, rationale };
+}
+
 /** Planner: decide *what* to do from (state, event). No patches yet. */
 export function planMock(
   state: UniversalState,
@@ -187,6 +212,20 @@ export function parseInstruction(
       if (focused) return planMinimizeApp(focused.id, state, text);
     }
     return { action: "noop", rationale: `Nothing to minimize: ${text}` };
+  }
+
+  if (isRestoreIntent(lower)) {
+    for (const app of listApps()) {
+      if (mentionsApp(lower, app)) {
+        return planRestoreApp(app.id, state, text);
+      }
+    }
+    const focusedId = state.focus?.windowId;
+    if (focusedId) {
+      const focused = listApps().find((app) => app.windowId === focusedId);
+      if (focused) return planRestoreApp(focused.id, state, text);
+    }
+    return { action: "noop", rationale: `Nothing to restore: ${text}` };
   }
 
   if (isUnmaximizeIntent(lower)) {
