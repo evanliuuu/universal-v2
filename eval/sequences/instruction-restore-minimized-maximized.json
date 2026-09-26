@@ -1,0 +1,28 @@
+{
+  "name": "instruction-restore-minimized-maximized",
+  "description": "Restore instruction unminimizes and unmaximizes a hidden maximized window",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "restore calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "restore calendar" },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

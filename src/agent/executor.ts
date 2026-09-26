@@ -106,14 +106,21 @@ export function executePlan(
       if (!app) break;
       const win = state.windows[app.windowId];
       if (!win) break;
+      const statePatch: JsonPatchOp[] = [];
+      if (win.minimized) {
+        statePatch.push({
+          op: "replace",
+          path: `/windows/${app.windowId}/minimized`,
+          value: false,
+        });
+      }
+      statePatch.push({
+        op: "replace",
+        path: `/windows/${app.windowId}/maximized`,
+        value: false,
+      });
       return {
-        statePatch: [
-          {
-            op: "replace",
-            path: `/windows/${app.windowId}/maximized`,
-            value: false,
-          },
-        ],
+        statePatch,
         uiPatch: [],
         rationale: plan.rationale,
       };

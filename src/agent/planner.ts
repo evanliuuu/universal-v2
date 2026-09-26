@@ -145,7 +145,8 @@ function planRestoreApp(
     return { action: "noop", rationale: `${app.title} is not open.` };
   }
   // Minimized-only windows come back via focus (unminimize + raise).
-  // Maximized windows still unmaximize; exit-fullscreen stays on that path.
+  // Maximized windows still unmaximize (and unminimize if they were hidden);
+  // exit-fullscreen stays on that path.
   if (win.minimized && !win.maximized) {
     return { action: "focus_app", app: app.id, rationale };
   }
