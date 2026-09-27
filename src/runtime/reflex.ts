@@ -160,15 +160,22 @@ export function tryReflex(
     const winId = String(event.value);
     const win = doc.state.windows[winId];
     if (!win) return empty;
+    const statePatch: JsonPatchOp[] = [];
+    if (win.minimized) {
+      statePatch.push({
+        op: "replace",
+        path: `/windows/${winId}/minimized`,
+        value: false,
+      });
+    }
+    statePatch.push({
+      op: "replace",
+      path: `/windows/${winId}/maximized`,
+      value: !win.maximized,
+    });
     return {
       handled: true,
-      statePatch: [
-        {
-          op: "replace",
-          path: `/windows/${winId}/maximized`,
-          value: !win.maximized,
-        },
-      ],
+      statePatch,
       uiPatch: [],
     };
   }
