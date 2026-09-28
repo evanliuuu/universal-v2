@@ -1,0 +1,15 @@
+{
+  "name": "close-calendar-clears-focus",
+  "description": "Closing a window via the titlebar drops focus so it does not point at a gone window",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" }
+    },
+    {
+      "event": { "type": "close_window", "value": "win-calendar" },
+      "assert": { "path": "/focus/windowId", "exists": false },
+      "expectTier": "reflex"
+    }
+  ]
+}
