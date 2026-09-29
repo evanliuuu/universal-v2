@@ -1,0 +1,15 @@
+{
+  "name": "close-calendar-clears-widgets",
+  "description": "Closing a window via the titlebar removes nested widgets, not just the window root",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/widgets/calendar-toolbar", "exists": true }
+    },
+    {
+      "event": { "type": "close_window", "value": "win-calendar" },
+      "assert": { "path": "/widgets/calendar-toolbar", "exists": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

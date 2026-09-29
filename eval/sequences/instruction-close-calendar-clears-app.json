@@ -1,0 +1,15 @@
+{
+  "name": "instruction-close-calendar-clears-app",
+  "description": "NL close instruction marks the app closed so /apps/<id>.open is not left true",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/apps/calendar/open", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "close calendar" },
+      "assert": { "path": "/apps/calendar/open", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
