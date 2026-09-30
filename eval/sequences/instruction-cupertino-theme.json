@@ -1,0 +1,25 @@
+{
+  "name": "instruction-cupertino-theme",
+  "description": "NL cupertino and light instructions restore the default theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to cupertino theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the light theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" },
+      "expectTier": "agent-big"
+    }
+  ]
+}
