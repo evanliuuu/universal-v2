@@ -1,6 +1,7 @@
 import { listApps } from "../apps";
 import { JsonPatchOp, SemanticEvent, WidgetNode } from "../protocol/types";
 import { UniversalDocument } from "../state/patch";
+import { closeWindowPatches } from "./window-close";
 
 export type ReflexResult = {
   handled: boolean;
@@ -120,28 +121,8 @@ export function tryReflex(
 
   if (event.type === "close_window" && event.value) {
     const winId = String(event.value);
-    const win = doc.state.windows[winId];
-    if (!win) return empty;
-    const app = listApps().find((item) => item.windowId === winId);
-    const statePatch: JsonPatchOp[] = [
-      { op: "remove", path: `/windows/${winId}` },
-      {
-        op: "replace",
-        path: `/widgets/desktop/children`,
-        value: (doc.state.widgets.desktop.children ?? []).filter(
-          (id) => id !== win.rootId,
-        ),
-      },
-      { op: "remove", path: `/widgets/${win.rootId}` },
-    ];
-    // Match close_app: don't leave focus pointing at a window that no longer exists.
-    if (doc.state.focus?.windowId === winId) {
-      statePatch.push({
-        op: "replace",
-        path: "/focus",
-        value: { widgetId: app?.dockId ?? doc.state.focus.widgetId },
-      });
-    }
+    const statePatch = closeWindowPatches(doc.state, winId);
+    if (!statePatch.length) return empty;
     return {
       handled: true,
       statePatch,

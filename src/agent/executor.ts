@@ -1,5 +1,6 @@
 import { getApp } from "../apps";
 import { AgentResponse, JsonPatchOp, UniversalState } from "../protocol/types";
+import { closeWindowPatches } from "../runtime/window-close";
 import { AgentPlan } from "./planner";
 
 /** Executor: turn a plan into validated patch deltas. */
@@ -129,26 +130,8 @@ export function executePlan(
       if (!plan.app || !state) break;
       const app = getApp(plan.app);
       if (!app) break;
-      const win = state.windows[app.windowId];
-      if (!win) break;
-      const statePatch: JsonPatchOp[] = [
-        { op: "remove", path: `/windows/${app.windowId}` },
-        {
-          op: "replace",
-          path: `/widgets/desktop/children`,
-          value: (state.widgets.desktop.children ?? []).filter(
-            (id) => id !== win.rootId,
-          ),
-        },
-        { op: "remove", path: `/widgets/${win.rootId}` },
-      ];
-      if (state.focus?.windowId === app.windowId) {
-        statePatch.push({
-          op: "replace",
-          path: "/focus",
-          value: { widgetId: app.dockId },
-        });
-      }
+      const statePatch = closeWindowPatches(state, app.windowId);
+      if (!statePatch.length) break;
       return {
         statePatch,
         uiPatch: [],

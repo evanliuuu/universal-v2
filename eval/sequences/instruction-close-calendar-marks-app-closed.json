@@ -1,0 +1,15 @@
+{
+  "name": "instruction-close-calendar-marks-app-closed",
+  "description": "NL close instruction flips apps.calendar.open off when the window is gone",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/apps/calendar/open", "eq": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "close calendar" },
+      "assert": { "path": "/apps/calendar/open", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
