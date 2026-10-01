@@ -15,6 +15,13 @@
           { "op": "remove", "path": "/windows/win-calendar" },
           { "op": "replace", "path": "/widgets/desktop/children", "value": [] },
           { "op": "remove", "path": "/widgets/calendar-root" },
+          { "op": "remove", "path": "/widgets/calendar-toolbar" },
+          { "op": "remove", "path": "/widgets/cal-prev" },
+          { "op": "remove", "path": "/widgets/cal-label" },
+          { "op": "remove", "path": "/widgets/cal-next" },
+          { "op": "remove", "path": "/widgets/calendar-body" },
+          { "op": "remove", "path": "/widgets/day-15" },
+          { "op": "replace", "path": "/apps/calendar/open", "value": false },
           { "op": "replace", "path": "/focus", "value": { "widgetId": "dock-calendar" } }
         ],
         "uiPatch": [],
