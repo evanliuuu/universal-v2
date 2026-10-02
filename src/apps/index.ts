@@ -1,5 +1,11 @@
 export type { AppDefinition, AppPatches, AppReflex, AppReflexResult } from "./types";
-export { defineApp, getApp, listApps, requireApp } from "./registry";
+export {
+  compiledHandlerKeysForApp,
+  defineApp,
+  getApp,
+  listApps,
+  requireApp,
+} from "./registry";
 
 import "./calendar";
 import "./notes";
