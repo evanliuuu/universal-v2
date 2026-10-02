@@ -1,4 +1,4 @@
-import { getApp } from "../apps";
+import { compiledHandlerKeysForApp, getApp } from "../apps";
 import { AgentResponse, JsonPatchOp, UniversalState } from "../protocol/types";
 import { AgentPlan } from "./planner";
 
@@ -148,6 +148,9 @@ export function executePlan(
           path: "/focus",
           value: { widgetId: app.dockId },
         });
+      }
+      for (const key of compiledHandlerKeysForApp(state.handlers, app.id)) {
+        statePatch.push({ op: "remove", path: `/handlers/${key}` });
       }
       return {
         statePatch,

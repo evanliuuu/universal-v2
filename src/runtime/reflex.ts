@@ -1,4 +1,4 @@
-import { listApps } from "../apps";
+import { compiledHandlerKeysForApp, listApps } from "../apps";
 import { JsonPatchOp, SemanticEvent, WidgetNode } from "../protocol/types";
 import { UniversalDocument } from "../state/patch";
 
@@ -141,6 +141,11 @@ export function tryReflex(
         path: "/focus",
         value: { widgetId: app?.dockId ?? doc.state.focus.widgetId },
       });
+    }
+    if (app) {
+      for (const key of compiledHandlerKeysForApp(doc.state.handlers, app.id)) {
+        statePatch.push({ op: "remove", path: `/handlers/${key}` });
+      }
     }
     return {
       handled: true,

@@ -2,6 +2,16 @@ import { AppDefinition } from "./types";
 
 const apps = new Map<string, AppDefinition>();
 
+/** Handler ids written when an app opens — `focus-<id>` plus any `<id>-*` extras. */
+export function compiledHandlerKeysForApp(
+  handlers: Record<string, unknown> | undefined,
+  appId: string,
+): string[] {
+  return Object.keys(handlers ?? {}).filter(
+    (key) => key === `focus-${appId}` || key.startsWith(`${appId}-`),
+  );
+}
+
 export function defineApp(def: AppDefinition): AppDefinition {
   if (apps.has(def.id)) {
     throw new Error(`App already registered: ${def.id}`);
