@@ -1,0 +1,15 @@
+{
+  "name": "close-calendar-clears-app",
+  "description": "Closing a window via the titlebar drops the app record so it is not left open",
+  "steps": [
+    {
+      "event": { "type": "click", "targetId": "dock-calendar" },
+      "assert": { "path": "/apps/calendar/open", "eq": true }
+    },
+    {
+      "event": { "type": "close_window", "value": "win-calendar" },
+      "assert": { "path": "/apps/calendar", "exists": false },
+      "expectTier": "reflex"
+    }
+  ]
+}

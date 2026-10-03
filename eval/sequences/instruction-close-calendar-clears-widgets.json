@@ -1,0 +1,15 @@
+{
+  "name": "instruction-close-calendar-clears-widgets",
+  "description": "NL close instruction drops nested calendar widgets via the agent",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/widgets/day-15", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "close calendar" },
+      "assert": { "path": "/widgets/day-15", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
