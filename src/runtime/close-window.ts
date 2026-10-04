@@ -20,10 +20,30 @@ export function descendantWidgetIds(
   return [...seen];
 }
 
+/** Handlers owned by this app: focus-<id> plus <id>-* from the executor. */
+export function appHandlerIds(
+  handlers: Record<string, { match: { targetId?: string } }>,
+  appId?: string,
+  goneWidgetIds: Iterable<string> = [],
+): string[] {
+  const gone = new Set(goneWidgetIds);
+  return Object.entries(handlers)
+    .filter(([id, handler]) => {
+      if (appId && (id === `focus-${appId}` || id.startsWith(`${appId}-`))) {
+        return true;
+      }
+      return (
+        handler.match.targetId != null && gone.has(handler.match.targetId)
+      );
+    })
+    .map(([id]) => id);
+}
+
 /**
  * Tear down a window: drop the window record, its widget tree, desktop
- * membership, and the matching /apps/<id> leftover. Focus is cleared when
- * it still pointed at the gone window.
+ * membership, the matching /apps/<id> leftover, and compiled handlers
+ * owned by that app. Focus is cleared when it still pointed at the gone
+ * window.
  */
 export function closeWindowPatches(
   state: UniversalState,
@@ -53,6 +73,10 @@ export function closeWindowPatches(
 
   if (app && state.apps[app.id] != null) {
     ops.push({ op: "remove", path: `/apps/${app.id}` });
+  }
+
+  for (const id of appHandlerIds(state.handlers ?? {}, app?.id, widgetIds)) {
+    ops.push({ op: "remove", path: `/handlers/${id}` });
   }
 
   if (state.focus?.windowId === winId) {

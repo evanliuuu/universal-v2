@@ -1,0 +1,15 @@
+{
+  "name": "instruction-close-calendar-clears-handlers",
+  "description": "NL close instruction drops compiled calendar handlers via the agent",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/handlers/focus-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "close calendar" },
+      "assert": { "path": "/handlers/focus-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
