@@ -270,7 +270,9 @@ export function parseInstruction(
     lower.includes("high contrast") ||
     lower.includes("high-contrast") ||
     lower.includes("custom theme") ||
-    /\bcustom\b/.test(lower)
+    /\bcustom\b/.test(lower) ||
+    lower.includes("cupertino") ||
+    /\blight\b/.test(lower)
   ) {
     let theme = "dark";
     if (lower.includes("win95")) theme = "win95";
@@ -278,6 +280,9 @@ export function parseInstruction(
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";
     } else if (lower.includes("custom")) theme = "custom";
+    else if (lower.includes("cupertino") || /\blight\b/.test(lower)) {
+      theme = "cupertino";
+    }
     return { action: "set_theme", theme, rationale: text };
   }
 
