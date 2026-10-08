@@ -71,6 +71,15 @@ function isUnmaximizeIntent(lower: string): boolean {
   );
 }
 
+function wantsWin95(lower: string): boolean {
+  return (
+    lower.includes("win95") ||
+    lower.includes("windows95") ||
+    lower.includes("windows 95") ||
+    lower.includes("win 95")
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -265,7 +274,7 @@ export function parseInstruction(
 
   if (
     lower.includes("dark") ||
-    lower.includes("win95") ||
+    wantsWin95(lower) ||
     lower.includes("material") ||
     lower.includes("high contrast") ||
     lower.includes("high-contrast") ||
@@ -273,7 +282,7 @@ export function parseInstruction(
     /\bcustom\b/.test(lower)
   ) {
     let theme = "dark";
-    if (lower.includes("win95")) theme = "win95";
+    if (wantsWin95(lower)) theme = "win95";
     else if (lower.includes("material")) theme = "material";
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";

@@ -31,7 +31,8 @@ export async function planLive(
   const system = `You are the PLANNER for a universal desktop runtime. Output JSON only:
 { "action": "open_app"|"focus_app"|"close_app"|"minimize_app"|"maximize_app"|"unmaximize_app"|"set_theme"|"set_budget"|"noop", "app": "${apps}", "theme": "cupertino"|"dark"|"win95"|"material"|"high-contrast"|"custom", "tokenLimit": number, "rationale": "..." }
 Decide intent from the event. Do NOT emit patches.
-Restore a minimized, non-maximized window with focus_app. Restore or exit fullscreen on a maximized window with unmaximize_app (also unminimize if it is hidden).`;
+Restore a minimized, non-maximized window with focus_app. Restore or exit fullscreen on a maximized window with unmaximize_app (also unminimize if it is hidden).
+Treat windows 95, win 95, and win95 as the win95 theme.`;
 
   const result = await openRouterChat({
     apiKey,

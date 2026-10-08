@@ -1,0 +1,29 @@
+{
+  "name": "instruction-win95-theme",
+  "description": "NL win95 and windows 95 instructions set the Win95 theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to win95 theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the windows 95 theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the win 95 theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    }
+  ]
+}
