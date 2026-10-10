@@ -80,6 +80,10 @@ function wantsWin95(lower: string): boolean {
   );
 }
 
+function wantsCupertino(lower: string): boolean {
+  return lower.includes("cupertino") || /\blight\b/.test(lower);
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -279,7 +283,8 @@ export function parseInstruction(
     lower.includes("high contrast") ||
     lower.includes("high-contrast") ||
     lower.includes("custom theme") ||
-    /\bcustom\b/.test(lower)
+    /\bcustom\b/.test(lower) ||
+    wantsCupertino(lower)
   ) {
     let theme = "dark";
     if (wantsWin95(lower)) theme = "win95";
@@ -287,6 +292,7 @@ export function parseInstruction(
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";
     } else if (lower.includes("custom")) theme = "custom";
+    else if (wantsCupertino(lower)) theme = "cupertino";
     return { action: "set_theme", theme, rationale: text };
   }
 
