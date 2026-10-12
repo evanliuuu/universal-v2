@@ -1,0 +1,34 @@
+{
+  "name": "instruction-macos-theme",
+  "description": "NL macos, mac os, and aqua instructions restore the cupertino theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to the macos theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the mac os theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the aqua theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

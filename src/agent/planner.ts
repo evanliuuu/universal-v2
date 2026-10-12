@@ -81,7 +81,13 @@ function wantsWin95(lower: string): boolean {
 }
 
 function wantsCupertino(lower: string): boolean {
-  return lower.includes("cupertino") || /\blight\b/.test(lower);
+  return (
+    lower.includes("cupertino") ||
+    /\blight\b/.test(lower) ||
+    lower.includes("macos") ||
+    lower.includes("mac os") ||
+    /\baqua\b/.test(lower)
+  );
 }
 
 function planCloseApp(
