@@ -1,0 +1,20 @@
+{
+  "name": "instruction-night-theme",
+  "description": "NL night and night mode instructions set the dark theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to night theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to cupertino theme" },
+      "assert": { "path": "/meta/theme", "eq": "cupertino" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use night mode" },
+      "assert": { "path": "/meta/theme", "eq": "dark" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -84,6 +84,14 @@ function wantsCupertino(lower: string): boolean {
   return lower.includes("cupertino") || /\blight\b/.test(lower);
 }
 
+function wantsDark(lower: string): boolean {
+  return (
+    lower.includes("dark") ||
+    lower.includes("night mode") ||
+    /\bnight\b/.test(lower)
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -277,7 +285,7 @@ export function parseInstruction(
   }
 
   if (
-    lower.includes("dark") ||
+    wantsDark(lower) ||
     wantsWin95(lower) ||
     lower.includes("material") ||
     lower.includes("high contrast") ||
