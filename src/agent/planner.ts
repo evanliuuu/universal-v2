@@ -84,6 +84,10 @@ function wantsCupertino(lower: string): boolean {
   return lower.includes("cupertino") || /\blight\b/.test(lower);
 }
 
+function wantsMaterial(lower: string): boolean {
+  return lower.includes("material design") || lower.includes("material");
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -279,7 +283,7 @@ export function parseInstruction(
   if (
     lower.includes("dark") ||
     wantsWin95(lower) ||
-    lower.includes("material") ||
+    wantsMaterial(lower) ||
     lower.includes("high contrast") ||
     lower.includes("high-contrast") ||
     lower.includes("custom theme") ||
@@ -288,7 +292,7 @@ export function parseInstruction(
   ) {
     let theme = "dark";
     if (wantsWin95(lower)) theme = "win95";
-    else if (lower.includes("material")) theme = "material";
+    else if (wantsMaterial(lower)) theme = "material";
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";
     } else if (lower.includes("custom")) theme = "custom";

@@ -1,9 +1,18 @@
 {
   "name": "instruction-material-theme",
-  "description": "NL instruction sets material theme",
+  "description": "NL material and material design instructions set the Material theme",
   "steps": [
     {
       "event": { "type": "instruction", "value": "switch to material theme" },
+      "assert": { "path": "/meta/theme", "eq": "material" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the material design theme" },
       "assert": { "path": "/meta/theme", "eq": "material" },
       "expectTier": "agent-big"
     }
