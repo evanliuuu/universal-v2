@@ -1,0 +1,20 @@
+{
+  "name": "instruction-accessible-theme",
+  "description": "NL accessible and a11y instructions set the high-contrast theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to the accessible theme" },
+      "assert": { "path": "/meta/theme", "eq": "high-contrast" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the a11y theme" },
+      "assert": { "path": "/meta/theme", "eq": "high-contrast" },
+      "expectTier": "agent-big"
+    }
+  ]
+}
