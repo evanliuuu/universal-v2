@@ -88,6 +88,15 @@ function wantsMaterial(lower: string): boolean {
   return lower.includes("material design") || lower.includes("material");
 }
 
+function wantsCustom(lower: string): boolean {
+  return (
+    /\bcustom\b/.test(lower) ||
+    lower.includes("user theme") ||
+    lower.includes("personalized") ||
+    lower.includes("personalised")
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -286,8 +295,7 @@ export function parseInstruction(
     wantsMaterial(lower) ||
     lower.includes("high contrast") ||
     lower.includes("high-contrast") ||
-    lower.includes("custom theme") ||
-    /\bcustom\b/.test(lower) ||
+    wantsCustom(lower) ||
     wantsCupertino(lower)
   ) {
     let theme = "dark";
@@ -295,7 +303,7 @@ export function parseInstruction(
     else if (wantsMaterial(lower)) theme = "material";
     else if (lower.includes("high contrast") || lower.includes("high-contrast")) {
       theme = "high-contrast";
-    } else if (lower.includes("custom")) theme = "custom";
+    } else if (wantsCustom(lower)) theme = "custom";
     else if (wantsCupertino(lower)) theme = "cupertino";
     return { action: "set_theme", theme, rationale: text };
   }
