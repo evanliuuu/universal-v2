@@ -34,7 +34,8 @@ Decide intent from the event. Do NOT emit patches.
 Restore a minimized, non-maximized window with focus_app. Restore or exit fullscreen on a maximized window with unmaximize_app (also unminimize if it is hidden).
 Treat windows 95, win 95, and win95 as the win95 theme.
 Treat cupertino and light as the cupertino theme.
-Treat material and material design as the material theme.`;
+Treat material and material design as the material theme.
+Treat custom, user theme, and personalized as the custom theme.`;
 
   const result = await openRouterChat({
     apiKey,
