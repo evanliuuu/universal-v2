@@ -94,6 +94,14 @@ function wantsMaterial(lower: string): boolean {
   return lower.includes("material design") || lower.includes("material");
 }
 
+function wantsDark(lower: string): boolean {
+  return (
+    lower.includes("dark") ||
+    lower.includes("night mode") ||
+    /\bnight\b/.test(lower)
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -287,7 +295,7 @@ export function parseInstruction(
   }
 
   if (
-    lower.includes("dark") ||
+    wantsDark(lower) ||
     wantsWin95(lower) ||
     wantsMaterial(lower) ||
     lower.includes("high contrast") ||
