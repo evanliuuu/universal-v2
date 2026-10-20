@@ -111,6 +111,15 @@ function wantsHighContrast(lower: string): boolean {
   );
 }
 
+function wantsCustom(lower: string): boolean {
+  return (
+    /\bcustom\b/.test(lower) ||
+    lower.includes("user theme") ||
+    lower.includes("personalized") ||
+    lower.includes("personalised")
+  );
+}
+
 function planCloseApp(
   appId: string,
   state: UniversalState,
@@ -308,8 +317,7 @@ export function parseInstruction(
     wantsWin95(lower) ||
     wantsMaterial(lower) ||
     wantsHighContrast(lower) ||
-    lower.includes("custom theme") ||
-    /\bcustom\b/.test(lower) ||
+    wantsCustom(lower) ||
     wantsCupertino(lower)
   ) {
     let theme = "dark";
@@ -317,7 +325,7 @@ export function parseInstruction(
     else if (wantsMaterial(lower)) theme = "material";
     else if (wantsHighContrast(lower)) {
       theme = "high-contrast";
-    } else if (lower.includes("custom")) theme = "custom";
+    } else if (wantsCustom(lower)) theme = "custom";
     else if (wantsCupertino(lower)) theme = "cupertino";
     return { action: "set_theme", theme, rationale: text };
   }

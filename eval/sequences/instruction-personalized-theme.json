@@ -1,0 +1,20 @@
+{
+  "name": "instruction-personalized-theme",
+  "description": "NL user theme and personalized instructions set the custom theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to the user theme" },
+      "assert": { "path": "/meta/theme", "eq": "custom" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the personalized theme" },
+      "assert": { "path": "/meta/theme", "eq": "custom" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

@@ -36,7 +36,8 @@ Treat windows 95, win 95, and win95 as the win95 theme.
 Treat cupertino, light, macos, mac os, and aqua as the cupertino theme.
 Treat material and material design as the material theme.
 Treat night and night mode as the dark theme.
-Treat high contrast, accessible, and a11y as the high-contrast theme.`;
+Treat high contrast, accessible, and a11y as the high-contrast theme.
+Treat custom, user theme, personalized, and personalised as the custom theme.`;
 
   const result = await openRouterChat({
     apiKey,
