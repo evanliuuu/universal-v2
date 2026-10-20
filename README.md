@@ -1,6 +1,6 @@
 # Universal v2
 
-I found [snickell/universal](https://github.com/snickell/universal) program pretty interesting, and decided to do a rewrite.
+I found this [snickell/universal](https://github.com/snickell/universal) pretty interesting and decided to do a more modern rewrite of it.
 
 An AI drives a little desktop UI through JSON state + patches instead of dumping HTML into the chat.
 
