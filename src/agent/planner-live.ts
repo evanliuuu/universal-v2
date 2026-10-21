@@ -32,7 +32,7 @@ export async function planLive(
 { "action": "open_app"|"focus_app"|"close_app"|"minimize_app"|"maximize_app"|"unmaximize_app"|"set_theme"|"set_budget"|"noop", "app": "${apps}", "theme": "cupertino"|"dark"|"win95"|"material"|"high-contrast"|"custom", "tokenLimit": number, "rationale": "..." }
 Decide intent from the event. Do NOT emit patches.
 Restore a minimized, non-maximized window with focus_app. Restore or exit fullscreen on a maximized window with unmaximize_app (also unminimize if it is hidden).
-Treat windows 95, win 95, and win95 as the win95 theme.
+Treat windows 95, win 95, win95, classic, and retro as the win95 theme.
 Treat cupertino, light, macos, mac os, and aqua as the cupertino theme.
 Treat material and material design as the material theme.
 Treat night and night mode as the dark theme.

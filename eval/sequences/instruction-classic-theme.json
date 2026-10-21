@@ -1,0 +1,20 @@
+{
+  "name": "instruction-classic-theme",
+  "description": "NL classic and retro instructions set the Win95 theme",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "switch to the classic theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "switch to dark theme" },
+      "assert": { "path": "/meta/theme", "eq": "dark" }
+    },
+    {
+      "event": { "type": "instruction", "value": "use the retro theme" },
+      "assert": { "path": "/meta/theme", "eq": "win95" },
+      "expectTier": "agent-big"
+    }
+  ]
+}

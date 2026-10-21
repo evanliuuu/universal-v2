@@ -76,7 +76,9 @@ function wantsWin95(lower: string): boolean {
     lower.includes("win95") ||
     lower.includes("windows95") ||
     lower.includes("windows 95") ||
-    lower.includes("win 95")
+    lower.includes("win 95") ||
+    /\bclassic\b/.test(lower) ||
+    /\bretro\b/.test(lower)
   );
 }
 
