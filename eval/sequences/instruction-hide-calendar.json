@@ -1,0 +1,25 @@
+{
+  "name": "instruction-hide-calendar",
+  "description": "NL hide instruction minimizes an open calendar window without closing it",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "hide calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "hide this window" },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

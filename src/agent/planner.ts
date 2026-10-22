@@ -49,7 +49,7 @@ function isCloseIntent(lower: string): boolean {
 }
 
 function isMinimizeIntent(lower: string): boolean {
-  return /\b(minimize|minimise)\b/.test(lower);
+  return /\b(minimize|minimise|hide)\b/.test(lower);
 }
 
 function isMaximizeIntent(lower: string): boolean {
