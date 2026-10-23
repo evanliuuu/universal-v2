@@ -45,7 +45,7 @@ function mentionsApp(
 }
 
 function isCloseIntent(lower: string): boolean {
-  return /\b(close|shut|dismiss)\b/.test(lower);
+  return /\b(close|shut|dismiss|quit)\b/.test(lower);
 }
 
 function isMinimizeIntent(lower: string): boolean {
