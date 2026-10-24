@@ -1,0 +1,25 @@
+{
+  "name": "instruction-exit-calendar",
+  "description": "NL exit instruction closes an open calendar window via the agent",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true }
+    },
+    {
+      "event": { "type": "instruction", "value": "exit calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "exit this window" },
+      "assert": { "path": "/windows/win-calendar", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
