@@ -33,7 +33,7 @@ export async function planLive(
 Decide intent from the event. Do NOT emit patches.
 Restore a minimized, non-maximized window with focus_app. Restore or exit fullscreen on a maximized window with unmaximize_app (also unminimize if it is hidden).
 Treat hide as minimize_app.
-Treat quit as close_app.
+Treat quit and leave as close_app. Leave fullscreen stays unmaximize_app.
 Treat windows 95, win 95, win95, classic, and retro as the win95 theme.
 Treat cupertino, light, macos, mac os, and aqua as the cupertino theme.
 Treat material and material design as the material theme.

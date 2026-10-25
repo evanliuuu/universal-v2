@@ -45,7 +45,8 @@ function mentionsApp(
 }
 
 function isCloseIntent(lower: string): boolean {
-  return /\b(close|shut|dismiss|quit)\b/.test(lower);
+  if (isUnmaximizeIntent(lower)) return false;
+  return /\b(close|shut|dismiss|quit|leave)\b/.test(lower);
 }
 
 function isMinimizeIntent(lower: string): boolean {
@@ -66,8 +67,9 @@ function isRestoreIntent(lower: string): boolean {
 function isUnmaximizeIntent(lower: string): boolean {
   return (
     /\b(unmaximize|unmaximise)\b/.test(lower) ||
-    /\bexit\s+(full-?screen|fullscreen)\b/.test(lower) ||
-    lower.includes("exit full screen")
+    /\b(exit|leave)\s+(full-?screen|fullscreen)\b/.test(lower) ||
+    lower.includes("exit full screen") ||
+    lower.includes("leave full screen")
   );
 }
 
@@ -197,7 +199,7 @@ function planRestoreApp(
   }
   // Minimized-only windows come back via focus (unminimize + raise).
   // Maximized windows still unmaximize (and unminimize if they were hidden);
-  // exit-fullscreen stays on that path.
+  // exit-fullscreen and leave-fullscreen stay on that path.
   if (win.minimized && !win.maximized) {
     return { action: "focus_app", app: app.id, rationale };
   }
