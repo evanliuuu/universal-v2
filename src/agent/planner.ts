@@ -46,7 +46,7 @@ function mentionsApp(
 
 function isCloseIntent(lower: string): boolean {
   if (isUnmaximizeIntent(lower)) return false;
-  return /\b(close|shut|dismiss|quit|exit)\b/.test(lower);
+  return /\b(close|shut|dismiss|quit|exit|leave)\b/.test(lower);
 }
 
 function isMinimizeIntent(lower: string): boolean {
@@ -67,8 +67,9 @@ function isRestoreIntent(lower: string): boolean {
 function isUnmaximizeIntent(lower: string): boolean {
   return (
     /\b(unmaximize|unmaximise)\b/.test(lower) ||
-    /\bexit\s+(full-?screen|fullscreen)\b/.test(lower) ||
-    lower.includes("exit full screen")
+    /\b(exit|leave)\s+(full-?screen|fullscreen)\b/.test(lower) ||
+    lower.includes("exit full screen") ||
+    lower.includes("leave full screen")
   );
 }
 
