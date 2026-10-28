@@ -1,0 +1,50 @@
+{
+  "name": "live-executor-maximize-minimized",
+  "description": "Model-emitted maximize patches also unminimize a hidden window",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/win-calendar/minimized", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Minimizing calendar from model patches."
+      },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/win-calendar/minimized", "value": false },
+          { "op": "replace", "path": "/windows/win-calendar/maximized", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Maximizing a hidden calendar from model patches."
+      },
+      "assert": { "path": "/windows/win-calendar/maximized", "eq": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "maximize the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/win-calendar/minimized", "value": false },
+          { "op": "replace", "path": "/windows/win-calendar/maximized", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Calendar already filling the desktop; keep it visible."
+      },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}
