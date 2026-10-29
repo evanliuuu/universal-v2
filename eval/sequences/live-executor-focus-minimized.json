@@ -1,0 +1,61 @@
+{
+  "name": "live-executor-focus-minimized",
+  "description": "Model-emitted focus patches also unminimize a hidden window",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/windows/win-calendar", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "minimize the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "replace", "path": "/windows/win-calendar/minimized", "value": true }
+        ],
+        "uiPatch": [],
+        "rationale": "Minimizing calendar from model patches."
+      },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "open notes" },
+      "assert": { "path": "/windows/win-notes", "exists": true },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "focus calendar" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "replace",
+            "path": "/focus",
+            "value": { "windowId": "win-calendar", "widgetId": "dock-calendar" }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Focusing calendar from model patches."
+      },
+      "assert": { "path": "/windows/win-calendar/minimized", "eq": false },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "focus calendar" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "replace",
+            "path": "/focus",
+            "value": { "windowId": "win-calendar", "widgetId": "dock-calendar" }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Calendar already visible; keep focus."
+      },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    }
+  ]
+}
