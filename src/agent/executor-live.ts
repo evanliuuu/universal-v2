@@ -1,5 +1,6 @@
 import {
   AgentResponse,
+  JsonPatchOp,
   SemanticEvent,
   UniversalState,
 } from "../protocol/types";
@@ -42,6 +43,23 @@ Rules:
 }
 
 /**
+ * Focus of a minimized window should also unminimize it. Fill that in when
+ * the model only patched /focus.
+ */
+function withMissingFocusUnminimize(
+  plan: AgentPlan,
+  state: UniversalState,
+  modelPatch: JsonPatchOp[],
+): JsonPatchOp[] {
+  if (plan.action !== "focus_app") return modelPatch;
+  const local = executePlan(plan, state);
+  const seen = new Set(modelPatch.map((op) => op.path));
+  const missing = local.statePatch.filter((op) => !seen.has(op.path));
+  if (missing.length === 0) return modelPatch;
+  return [...missing, ...modelPatch];
+}
+
+/**
  * Validate model-emitted patches. On schema or apply failure, fall back to
  * the local template executor.
  */
@@ -73,9 +91,23 @@ export function applyModelExecutorOutput(
     };
   }
 
+  let statePatch = withMissingFocusUnminimize(
+    plan,
+    state,
+    candidate.statePatch,
+  );
+  if (statePatch !== candidate.statePatch) {
+    const mergedRun = safeApplyPatches(
+      createDocument(structuredClone(state)),
+      statePatch,
+      candidate.uiPatch,
+    );
+    if (!mergedRun.ok) statePatch = candidate.statePatch;
+  }
+
   return {
     response: {
-      statePatch: candidate.statePatch,
+      statePatch,
       uiPatch: candidate.uiPatch,
       rationale: candidate.rationale ?? plan.rationale,
     },
