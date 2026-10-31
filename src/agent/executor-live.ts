@@ -1,5 +1,6 @@
 import {
   AgentResponse,
+  JsonPatchOp,
   SemanticEvent,
   UniversalState,
 } from "../protocol/types";
@@ -42,6 +43,23 @@ Rules:
 }
 
 /**
+ * Models often remove the window and forget /apps, nested widgets, or
+ * handlers. Fold in any local close teardown ops whose paths were omitted.
+ */
+function mergeMissingCloseOps(
+  modelOps: JsonPatchOp[],
+  plan: AgentPlan,
+  state: UniversalState,
+): JsonPatchOp[] {
+  if (plan.action !== "close_app") return modelOps;
+  const covered = new Set(modelOps.map((op) => op.path));
+  const extras = executePlan(plan, state).statePatch.filter(
+    (op) => !covered.has(op.path),
+  );
+  return extras.length === 0 ? modelOps : [...modelOps, ...extras];
+}
+
+/**
  * Validate model-emitted patches. On schema or apply failure, fall back to
  * the local template executor.
  */
@@ -73,9 +91,28 @@ export function applyModelExecutorOutput(
     };
   }
 
+  const statePatch = mergeMissingCloseOps(candidate.statePatch, plan, state);
+  if (statePatch !== candidate.statePatch) {
+    const mergedRun = safeApplyPatches(
+      createDocument(structuredClone(state)),
+      statePatch,
+      candidate.uiPatch,
+    );
+    if (!mergedRun.ok) {
+      return {
+        response: {
+          statePatch: candidate.statePatch,
+          uiPatch: candidate.uiPatch,
+          rationale: candidate.rationale ?? plan.rationale,
+        },
+        source: "live",
+      };
+    }
+  }
+
   return {
     response: {
-      statePatch: candidate.statePatch,
+      statePatch,
       uiPatch: candidate.uiPatch,
       rationale: candidate.rationale ?? plan.rationale,
     },
