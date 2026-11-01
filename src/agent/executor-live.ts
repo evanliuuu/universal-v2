@@ -1,14 +1,17 @@
+import { getApp } from "../apps";
 import {
   AgentResponse,
   SemanticEvent,
   UniversalState,
 } from "../protocol/types";
+import { closeWindowPatches } from "../runtime/close-window";
 import { createDocument } from "../state/patch";
 import { safeApplyPatches } from "../state/safe-patch";
 import { buildPlannerContext, RecentEventSummary } from "./context-pack";
 import { readEnv } from "./env";
 import { executePlan } from "./executor";
 import {
+  ExecutorPatch,
   ExecutorPatchSchema,
   isLiveExecutorAction,
 } from "./executor-schema";
@@ -39,6 +42,42 @@ Rules:
 - open_app: add /windows/win-<app>, related /widgets/*, desktop children, /focus, /apps/<app>
 - Prefer small valid patches. Widget types: box, text, label, button, input, list, tabs, table, form, checkbox, select, slider, divider, scroll-area, menu, dialog, icon, image, window
 - uiPatch may be [] if widgets are included in statePatch`;
+}
+
+/**
+ * Fold local close teardown into a live close_app patch when the model
+ * drops the window but leaves apps, nested widgets, or handlers behind.
+ */
+function mergeCloseTeardown(
+  plan: AgentPlan,
+  state: UniversalState,
+  candidate: ExecutorPatch,
+): ExecutorPatch {
+  if (plan.action !== "close_app" || !plan.app) return candidate;
+  const app = getApp(plan.app);
+  if (!app) return candidate;
+  const local = closeWindowPatches(state, app.windowId);
+  if (!local) return candidate;
+
+  const existing = new Set(candidate.statePatch.map((op) => op.path));
+  const extras = local.filter((op) => !existing.has(op.path));
+  if (extras.length === 0) return candidate;
+
+  return {
+    ...candidate,
+    statePatch: [...candidate.statePatch, ...extras],
+  };
+}
+
+function liveResponse(
+  candidate: ExecutorPatch,
+  plan: AgentPlan,
+): AgentResponse {
+  return {
+    statePatch: candidate.statePatch,
+    uiPatch: candidate.uiPatch,
+    rationale: candidate.rationale ?? plan.rationale,
+  };
 }
 
 /**
@@ -73,14 +112,24 @@ export function applyModelExecutorOutput(
     };
   }
 
-  return {
-    response: {
-      statePatch: candidate.statePatch,
-      uiPatch: candidate.uiPatch,
-      rationale: candidate.rationale ?? plan.rationale,
-    },
-    source: "live",
-  };
+  const merged = mergeCloseTeardown(plan, state, candidate);
+  if (merged !== candidate) {
+    const mergedRun = safeApplyPatches(
+      createDocument(structuredClone(state)),
+      merged.statePatch,
+      merged.uiPatch,
+    );
+    if (!mergedRun.ok) {
+      return {
+        response: executePlan(plan, state),
+        source: "fallback",
+        error: mergedRun.error,
+      };
+    }
+    return { response: liveResponse(merged, plan), source: "live" };
+  }
+
+  return { response: liveResponse(candidate, plan), source: "live" };
 }
 
 /** Live executor: model emits validated patch ops for supported plan actions. */
