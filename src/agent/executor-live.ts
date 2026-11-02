@@ -44,6 +44,19 @@ Rules:
 - uiPatch may be [] if widgets are included in statePatch`;
 }
 
+function foldMissingLocalOps(
+  candidate: ExecutorPatch,
+  local: ExecutorPatch["statePatch"],
+): ExecutorPatch {
+  const existing = new Set(candidate.statePatch.map((op) => op.path));
+  const extras = local.filter((op) => !existing.has(op.path));
+  if (extras.length === 0) return candidate;
+  return {
+    ...candidate,
+    statePatch: [...candidate.statePatch, ...extras],
+  };
+}
+
 /**
  * Fold local close teardown into a live close_app patch when the model
  * drops the window but leaves apps, nested widgets, or handlers behind.
@@ -58,15 +71,23 @@ function mergeCloseTeardown(
   if (!app) return candidate;
   const local = closeWindowPatches(state, app.windowId);
   if (!local) return candidate;
+  return foldMissingLocalOps(candidate, local);
+}
 
-  const existing = new Set(candidate.statePatch.map((op) => op.path));
-  const extras = local.filter((op) => !existing.has(op.path));
-  if (extras.length === 0) return candidate;
-
-  return {
-    ...candidate,
-    statePatch: [...candidate.statePatch, ...extras],
-  };
+/**
+ * Fold local unminimize into a live maximize_app patch when the model
+ * only sets maximized and leaves a hidden window minimized.
+ */
+function mergeMaximizeUnminimize(
+  plan: AgentPlan,
+  state: UniversalState,
+  candidate: ExecutorPatch,
+): ExecutorPatch {
+  if (plan.action !== "maximize_app" || !plan.app) return candidate;
+  const app = getApp(plan.app);
+  if (!app) return candidate;
+  if (!state.windows[app.windowId]?.minimized) return candidate;
+  return foldMissingLocalOps(candidate, executePlan(plan, state).statePatch);
 }
 
 function liveResponse(
@@ -112,7 +133,11 @@ export function applyModelExecutorOutput(
     };
   }
 
-  const merged = mergeCloseTeardown(plan, state, candidate);
+  const merged = mergeMaximizeUnminimize(
+    plan,
+    state,
+    mergeCloseTeardown(plan, state, candidate),
+  );
   if (merged !== candidate) {
     const mergedRun = safeApplyPatches(
       createDocument(structuredClone(state)),
