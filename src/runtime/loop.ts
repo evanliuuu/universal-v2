@@ -5,6 +5,7 @@ import {
   JsonPatchOp,
   SemanticEvent,
 } from "../protocol/types";
+import { parseAgUiMessage } from "../protocol/ag-ui";
 import { eventKey } from "../protocol/messages";
 import {
   applyStatePatch,
@@ -185,6 +186,14 @@ export class UniversalRuntime {
     if (msg.type === "PREFETCH_HIT" && typeof msg.key === "string") {
       this.prefetch.drop(msg.key);
       this.onStats?.();
+    }
+
+    if (msg.type === "RUN_FINISHED") {
+      const parsed = parseAgUiMessage(msg);
+      if (parsed?.type === "RUN_FINISHED") {
+        this.health.record(parsed.tier, parsed.latencyMs);
+        this.onStats?.();
+      }
     }
   }
 

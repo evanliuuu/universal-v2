@@ -44,7 +44,11 @@ import { FILE_ITEMS } from "../src/apps/files";
 import { runEnduranceSession } from "../src/runtime/session-endurance";
 import { WidgetNode } from "../src/protocol/types";
 import { eventKey } from "../src/protocol/messages";
-import { encodePrefetchHit, parseAgUiMessage } from "../src/protocol/ag-ui";
+import {
+  encodePrefetchHit,
+  encodeRunFinished,
+  parseAgUiMessage,
+} from "../src/protocol/ag-ui";
 import { PrefetchCache } from "../src/agent/prefetch";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -316,6 +320,83 @@ function checkAgUiPrefetchHit(): boolean {
   cases.push(["drop removes a peer-consumed key", peerCache.drop(eventKey(notes)) === true]);
   cases.push(["dropped key is gone", peerCache.has(notes) === false]);
   cases.push(["drop of unknown key is false", peerCache.drop("click:dock-files") === false]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkAgUiRunFinished(): boolean {
+  console.log("\n▶ ag-ui-run-finished");
+  const cases: Array<[string, boolean]> = [];
+
+  const encoded = encodeRunFinished("sess-eval", 12, "compiled", 18.25);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["encode type is RUN_FINISHED", encoded.type === "RUN_FINISHED"]);
+  cases.push([
+    "encode keeps session seq tier and latency",
+    encoded.sessionId === "sess-eval" &&
+      encoded.seq === 12 &&
+      encoded.tier === "compiled" &&
+      encoded.latencyMs === 18.25,
+  ]);
+  cases.push(["parse accepts a valid run", parsed?.type === "RUN_FINISHED"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "RUN_FINISHED" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.seq === 12 &&
+      parsed.tier === "compiled" &&
+      parsed.latencyMs === 18.25,
+  ]);
+
+  const missingSeq = parseAgUiMessage({
+    type: "RUN_FINISHED",
+    sessionId: "sess-eval",
+    tier: "reflex",
+    latencyMs: 2,
+  });
+  cases.push(["parse rejects a missing seq", missingSeq === null]);
+
+  const missingTier = parseAgUiMessage({
+    type: "RUN_FINISHED",
+    sessionId: "sess-eval",
+    seq: 1,
+    latencyMs: 2,
+  });
+  cases.push(["parse rejects a missing tier", missingTier === null]);
+
+  const badLatency = parseAgUiMessage({
+    type: "RUN_FINISHED",
+    sessionId: "sess-eval",
+    seq: 1,
+    tier: "reflex",
+    latencyMs: "fast",
+  });
+  cases.push(["parse rejects a non-number latency", badLatency === null]);
+
+  const missingSession = parseAgUiMessage({
+    type: "RUN_FINISHED",
+    seq: 1,
+    tier: "reflex",
+    latencyMs: 2,
+  });
+  cases.push(["parse rejects a missing session", missingSession === null]);
+
+  const health = new SessionHealth();
+  if (parsed?.type === "RUN_FINISHED") {
+    health.record(parsed.tier, parsed.latencyMs);
+  }
+  const snap = health.snapshot();
+  cases.push([
+    "health records peer run latency",
+    snap.lastMs === 18.25 && snap.lastTier === "compiled" && snap.totalEvents === 1,
+  ]);
 
   let passed = 0;
   for (const [name, ok] of cases) {
@@ -806,6 +887,7 @@ const sequences = readdirSync(seqDir)
 
 let allOk =
   checkAgUiPrefetchHit() &&
+  checkAgUiRunFinished() &&
   checkPlannerContextPack() &&
   (await checkPackedOpenRouterPrompt()) &&
   checkSessionConflictPolicy() &&
