@@ -106,6 +106,22 @@ function mergeFocusUnminimize(
   return foldMissingLocalOps(candidate, executePlan(plan, state).statePatch);
 }
 
+/**
+ * Fold local unminimize into a live unmaximize_app patch when the model
+ * only sets maximized and leaves a hidden window minimized.
+ */
+function mergeUnmaximizeUnminimize(
+  plan: AgentPlan,
+  state: UniversalState,
+  candidate: ExecutorPatch,
+): ExecutorPatch {
+  if (plan.action !== "unmaximize_app" || !plan.app) return candidate;
+  const app = getApp(plan.app);
+  if (!app) return candidate;
+  if (!state.windows[app.windowId]?.minimized) return candidate;
+  return foldMissingLocalOps(candidate, executePlan(plan, state).statePatch);
+}
+
 function liveResponse(
   candidate: ExecutorPatch,
   plan: AgentPlan,
@@ -149,13 +165,17 @@ export function applyModelExecutorOutput(
     };
   }
 
-  const merged = mergeFocusUnminimize(
+  const merged = mergeUnmaximizeUnminimize(
     plan,
     state,
-    mergeMaximizeUnminimize(
+    mergeFocusUnminimize(
       plan,
       state,
-      mergeCloseTeardown(plan, state, candidate),
+      mergeMaximizeUnminimize(
+        plan,
+        state,
+        mergeCloseTeardown(plan, state, candidate),
+      ),
     ),
   );
   if (merged !== candidate) {
