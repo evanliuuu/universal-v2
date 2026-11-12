@@ -58,6 +58,21 @@ function foldMissingLocalOps(
 }
 
 /**
+ * Fold local open patches into a live open_app patch when the model
+ * adds the window but leaves widgets, apps, or handlers behind.
+ */
+function mergeOpenFill(
+  plan: AgentPlan,
+  state: UniversalState,
+  candidate: ExecutorPatch,
+): ExecutorPatch {
+  if (plan.action !== "open_app" || !plan.app) return candidate;
+  const app = getApp(plan.app);
+  if (!app) return candidate;
+  return foldMissingLocalOps(candidate, executePlan(plan, state).statePatch);
+}
+
+/**
  * Fold local close teardown into a live close_app patch when the model
  * drops the window but leaves apps, nested widgets, or handlers behind.
  */
@@ -174,7 +189,11 @@ export function applyModelExecutorOutput(
       mergeMaximizeUnminimize(
         plan,
         state,
-        mergeCloseTeardown(plan, state, candidate),
+        mergeOpenFill(
+          plan,
+          state,
+          mergeCloseTeardown(plan, state, candidate),
+        ),
       ),
     ),
   );
