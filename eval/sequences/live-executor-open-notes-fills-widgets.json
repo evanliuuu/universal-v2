@@ -1,0 +1,32 @@
+{
+  "name": "live-executor-open-notes-fills-widgets",
+  "description": "Incomplete live open patches still add leftover notes widgets",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes app" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "add",
+            "path": "/windows/win-notes",
+            "value": {
+              "id": "win-notes",
+              "title": "Notes",
+              "x": 200,
+              "y": 120,
+              "width": 420,
+              "height": 320,
+              "rootId": "notes-root",
+              "minimized": false
+            }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Opening notes from incomplete model patches."
+      },
+      "assert": { "path": "/widgets/notes-root", "exists": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}

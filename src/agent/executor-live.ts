@@ -75,6 +75,22 @@ function mergeCloseTeardown(
 }
 
 /**
+ * Fold local open patches into a live open_app patch when the model
+ * only adds the window and leaves widgets, apps, or handlers behind.
+ */
+function mergeOpenFill(
+  plan: AgentPlan,
+  state: UniversalState,
+  candidate: ExecutorPatch,
+): ExecutorPatch {
+  if (plan.action !== "open_app" || !plan.app) return candidate;
+  const app = getApp(plan.app);
+  if (!app) return candidate;
+  if (state.windows[app.windowId]) return candidate;
+  return foldMissingLocalOps(candidate, executePlan(plan, state).statePatch);
+}
+
+/**
  * Fold local unminimize into a live maximize_app patch when the model
  * only sets maximized and leaves a hidden window minimized.
  */
@@ -174,7 +190,11 @@ export function applyModelExecutorOutput(
       mergeMaximizeUnminimize(
         plan,
         state,
-        mergeCloseTeardown(plan, state, candidate),
+        mergeOpenFill(
+          plan,
+          state,
+          mergeCloseTeardown(plan, state, candidate),
+        ),
       ),
     ),
   );
