@@ -1,0 +1,32 @@
+{
+  "name": "live-executor-open-notes-fills-apps",
+  "description": "Incomplete live open patches still add the leftover notes app record",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open notes app" },
+      "modelPatches": {
+        "statePatch": [
+          {
+            "op": "add",
+            "path": "/windows/win-notes",
+            "value": {
+              "id": "win-notes",
+              "title": "Notes",
+              "x": 200,
+              "y": 120,
+              "width": 420,
+              "height": 320,
+              "rootId": "notes-root",
+              "minimized": false
+            }
+          }
+        ],
+        "uiPatch": [],
+        "rationale": "Opening notes from incomplete model patches."
+      },
+      "assert": { "path": "/apps/notes/open", "eq": true },
+      "expectTier": "agent-big"
+    }
+  ]
+}
