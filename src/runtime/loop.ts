@@ -172,14 +172,13 @@ export class UniversalRuntime {
       return;
     }
 
-    if (
-      (msg.type === "STATE_DELTA" || msg.type === "UI_DELTA") &&
-      typeof msg.seq === "number" &&
-      Array.isArray(msg.patch)
-    ) {
-      const statePatch = msg.type === "STATE_DELTA" ? msg.patch : [];
-      const uiPatch = msg.type === "UI_DELTA" ? msg.patch : [];
-      await this.applyRemoteDelta(msg.seq, statePatch, uiPatch);
+    if (msg.type === "STATE_DELTA" || msg.type === "UI_DELTA") {
+      const parsed = parseAgUiMessage(msg);
+      if (parsed?.type === "STATE_DELTA") {
+        await this.applyRemoteDelta(parsed.seq, parsed.patch, []);
+      } else if (parsed?.type === "UI_DELTA") {
+        await this.applyRemoteDelta(parsed.seq, [], parsed.patch);
+      }
       return;
     }
 
