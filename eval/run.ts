@@ -47,6 +47,7 @@ import { eventKey } from "../src/protocol/messages";
 import {
   encodePrefetchHit,
   encodeRunFinished,
+  encodeStateDelta,
   parseAgUiMessage,
 } from "../src/protocol/ag-ui";
 import { PrefetchCache } from "../src/agent/prefetch";
@@ -397,6 +398,101 @@ function checkAgUiRunFinished(): boolean {
     "health records peer run latency",
     snap.lastMs === 18.25 && snap.lastTier === "compiled" && snap.totalEvents === 1,
   ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkAgUiStateDelta(): boolean {
+  console.log("\n▶ ag-ui-state-delta");
+  const cases: Array<[string, boolean]> = [];
+
+  const patch = [{ op: "replace" as const, path: "/meta/theme", value: "dark" }];
+  const encoded = encodeStateDelta("sess-eval", 4, patch);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["encode type is STATE_DELTA", encoded.type === "STATE_DELTA"]);
+  cases.push([
+    "encode keeps session seq and patch",
+    encoded.sessionId === "sess-eval" &&
+      encoded.seq === 4 &&
+      encoded.patch.length === 1 &&
+      encoded.patch[0]?.op === "replace" &&
+      encoded.patch[0]?.path === "/meta/theme" &&
+      encoded.patch[0]?.value === "dark",
+  ]);
+  cases.push(["parse accepts a valid delta", parsed?.type === "STATE_DELTA"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "STATE_DELTA" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.seq === 4 &&
+      parsed.patch[0]?.op === "replace" &&
+      parsed.patch[0]?.path === "/meta/theme" &&
+      parsed.patch[0]?.value === "dark",
+  ]);
+
+  const missingSeq = parseAgUiMessage({
+    type: "STATE_DELTA",
+    sessionId: "sess-eval",
+    patch,
+  });
+  cases.push(["parse rejects a missing seq", missingSeq === null]);
+
+  const missingPatch = parseAgUiMessage({
+    type: "STATE_DELTA",
+    sessionId: "sess-eval",
+    seq: 4,
+  });
+  cases.push(["parse rejects a missing patch", missingPatch === null]);
+
+  const badPatch = parseAgUiMessage({
+    type: "STATE_DELTA",
+    sessionId: "sess-eval",
+    seq: 4,
+    patch: "replace theme",
+  });
+  cases.push(["parse rejects a non-array patch", badPatch === null]);
+
+  const badOp = parseAgUiMessage({
+    type: "STATE_DELTA",
+    sessionId: "sess-eval",
+    seq: 4,
+    patch: [{ op: "explode", path: "/meta/theme", value: "dark" }],
+  });
+  cases.push(["parse rejects an invalid op", badOp === null]);
+
+  const missingPath = parseAgUiMessage({
+    type: "STATE_DELTA",
+    sessionId: "sess-eval",
+    seq: 4,
+    patch: [{ op: "replace", value: "dark" }],
+  });
+  cases.push(["parse rejects a patch op without a path", missingPath === null]);
+
+  const missingSession = parseAgUiMessage({
+    type: "STATE_DELTA",
+    seq: 4,
+    patch,
+  });
+  cases.push(["parse rejects a missing session", missingSession === null]);
+
+  const seed = createDocument(createSeedState());
+  cases.push(["seed starts on cupertino", seed.state.meta.theme === "cupertino"]);
+  if (parsed?.type === "STATE_DELTA") {
+    const applied = safeApplyPatches(seed, parsed.patch, []);
+    cases.push([
+      "parsed delta applies the peer theme patch",
+      applied.ok && applied.doc.state.meta.theme === "dark",
+    ]);
+  } else {
+    cases.push(["parsed delta applies the peer theme patch", false]);
+  }
 
   let passed = 0;
   for (const [name, ok] of cases) {
@@ -888,6 +984,7 @@ const sequences = readdirSync(seqDir)
 let allOk =
   checkAgUiPrefetchHit() &&
   checkAgUiRunFinished() &&
+  checkAgUiStateDelta() &&
   checkPlannerContextPack() &&
   (await checkPackedOpenRouterPrompt()) &&
   checkSessionConflictPolicy() &&
