@@ -47,6 +47,7 @@ import { eventKey } from "../src/protocol/messages";
 import {
   encodePrefetchHit,
   encodeRunFinished,
+  encodeUiDelta,
   parseAgUiMessage,
 } from "../src/protocol/ag-ui";
 import { PrefetchCache } from "../src/agent/prefetch";
@@ -397,6 +398,112 @@ function checkAgUiRunFinished(): boolean {
     "health records peer run latency",
     snap.lastMs === 18.25 && snap.lastTier === "compiled" && snap.totalEvents === 1,
   ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkAgUiUiDelta(): boolean {
+  console.log("\n▶ ag-ui-ui-delta");
+  const cases: Array<[string, boolean]> = [];
+
+  const patch = [
+    {
+      op: "replace" as const,
+      path: "/widgets/menubar-left/props/text",
+      value: "🤖 Shared",
+    },
+  ];
+  const encoded = encodeUiDelta("sess-eval", 5, patch);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["encode type is UI_DELTA", encoded.type === "UI_DELTA"]);
+  cases.push([
+    "encode keeps session seq and patch",
+    encoded.sessionId === "sess-eval" &&
+      encoded.seq === 5 &&
+      encoded.patch.length === 1 &&
+      encoded.patch[0]?.op === "replace" &&
+      encoded.patch[0]?.path === "/widgets/menubar-left/props/text" &&
+      encoded.patch[0]?.value === "🤖 Shared",
+  ]);
+  cases.push(["parse accepts a valid delta", parsed?.type === "UI_DELTA"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "UI_DELTA" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.seq === 5 &&
+      parsed.patch[0]?.op === "replace" &&
+      parsed.patch[0]?.path === "/widgets/menubar-left/props/text" &&
+      parsed.patch[0]?.value === "🤖 Shared",
+  ]);
+
+  const missingSeq = parseAgUiMessage({
+    type: "UI_DELTA",
+    sessionId: "sess-eval",
+    patch,
+  });
+  cases.push(["parse rejects a missing seq", missingSeq === null]);
+
+  const missingPatch = parseAgUiMessage({
+    type: "UI_DELTA",
+    sessionId: "sess-eval",
+    seq: 5,
+  });
+  cases.push(["parse rejects a missing patch", missingPatch === null]);
+
+  const badPatch = parseAgUiMessage({
+    type: "UI_DELTA",
+    sessionId: "sess-eval",
+    seq: 5,
+    patch: "replace menubar",
+  });
+  cases.push(["parse rejects a non-array patch", badPatch === null]);
+
+  const badOp = parseAgUiMessage({
+    type: "UI_DELTA",
+    sessionId: "sess-eval",
+    seq: 5,
+    patch: [{ op: "explode", path: "/widgets/menubar-left/props/text", value: "x" }],
+  });
+  cases.push(["parse rejects an invalid op", badOp === null]);
+
+  const missingPath = parseAgUiMessage({
+    type: "UI_DELTA",
+    sessionId: "sess-eval",
+    seq: 5,
+    patch: [{ op: "replace", value: "🤖 Shared" }],
+  });
+  cases.push(["parse rejects a patch op without a path", missingPath === null]);
+
+  const missingSession = parseAgUiMessage({
+    type: "UI_DELTA",
+    seq: 5,
+    patch,
+  });
+  cases.push(["parse rejects a missing session", missingSession === null]);
+
+  const seed = createDocument(createSeedState());
+  cases.push([
+    "seed menubar starts as Universal",
+    seed.ui.widgets["menubar-left"]?.props.text === "🤖 Universal",
+  ]);
+  if (parsed?.type === "UI_DELTA") {
+    const applied = safeApplyPatches(seed, [], parsed.patch);
+    cases.push([
+      "parsed delta applies the peer ui patch",
+      applied.ok &&
+        applied.doc.ui.widgets["menubar-left"]?.props.text === "🤖 Shared" &&
+        applied.doc.state.widgets["menubar-left"]?.props.text === "🤖 Shared",
+    ]);
+  } else {
+    cases.push(["parsed delta applies the peer ui patch", false]);
+  }
 
   let passed = 0;
   for (const [name, ok] of cases) {
@@ -888,6 +995,7 @@ const sequences = readdirSync(seqDir)
 let allOk =
   checkAgUiPrefetchHit() &&
   checkAgUiRunFinished() &&
+  checkAgUiUiDelta() &&
   checkPlannerContextPack() &&
   (await checkPackedOpenRouterPrompt()) &&
   checkSessionConflictPolicy() &&
