@@ -1,0 +1,24 @@
+{
+  "name": "live-executor-close-calendar-clears-focus",
+  "description": "Incomplete live close patches still drop leftover calendar focus",
+  "agentMode": "live-fixture",
+  "steps": [
+    {
+      "event": { "type": "instruction", "value": "open calendar" },
+      "assert": { "path": "/focus/windowId", "eq": "win-calendar" },
+      "expectTier": "agent-big"
+    },
+    {
+      "event": { "type": "instruction", "value": "close the calendar window" },
+      "modelPatches": {
+        "statePatch": [
+          { "op": "remove", "path": "/windows/win-calendar" }
+        ],
+        "uiPatch": [],
+        "rationale": "Closing calendar from incomplete model patches."
+      },
+      "assert": { "path": "/focus/windowId", "exists": false },
+      "expectTier": "agent-big"
+    }
+  ]
+}

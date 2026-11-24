@@ -59,7 +59,8 @@ function foldMissingLocalOps(
 
 /**
  * Fold local close teardown into a live close_app patch when the model
- * drops the window but leaves apps, nested widgets, or handlers behind.
+ * drops the window but leaves apps, nested widgets, handlers, or leftover
+ * focus behind.
  */
 function mergeCloseTeardown(
   plan: AgentPlan,
