@@ -77,7 +77,7 @@ function mergeCloseTeardown(
 
 /**
  * Fold local open patches into a live open_app patch when the model
- * only adds the window and leaves widgets, apps, or handlers behind.
+ * only adds the window and leaves widgets, apps, handlers, or focus behind.
  */
 function mergeOpenFill(
   plan: AgentPlan,
