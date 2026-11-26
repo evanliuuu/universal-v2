@@ -7,8 +7,12 @@ export const AgUiMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("STATE_SNAPSHOT"),
     sessionId: z.string(),
     seq: z.number(),
-    state: z.unknown(),
-    ui: z.unknown(),
+    state: z.record(z.unknown()),
+    ui: z
+      .object({
+        rootId: z.string(),
+      })
+      .passthrough(),
   }),
   z.object({
     type: z.literal("STATE_DELTA"),

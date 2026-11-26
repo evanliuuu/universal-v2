@@ -159,16 +159,14 @@ export class UniversalRuntime {
       return;
     }
 
-    if (
-      msg.type === "STATE_SNAPSHOT" &&
-      msg.state &&
-      msg.ui &&
-      typeof msg.seq === "number"
-    ) {
-      await this.applyRemoteSnapshot(msg.seq, {
-        state: msg.state as UniversalDocument["state"],
-        ui: msg.ui as UniversalDocument["ui"],
-      });
+    if (msg.type === "STATE_SNAPSHOT") {
+      const parsed = parseAgUiMessage(msg);
+      if (parsed?.type === "STATE_SNAPSHOT" && parsed.state && parsed.ui) {
+        await this.applyRemoteSnapshot(parsed.seq, {
+          state: parsed.state as UniversalDocument["state"],
+          ui: parsed.ui as UniversalDocument["ui"],
+        });
+      }
       return;
     }
 

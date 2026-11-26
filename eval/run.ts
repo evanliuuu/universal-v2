@@ -47,6 +47,7 @@ import { eventKey } from "../src/protocol/messages";
 import {
   encodePrefetchHit,
   encodeRunFinished,
+  encodeStateSnapshot,
   parseAgUiMessage,
 } from "../src/protocol/ag-ui";
 import { PrefetchCache } from "../src/agent/prefetch";
@@ -397,6 +398,128 @@ function checkAgUiRunFinished(): boolean {
     "health records peer run latency",
     snap.lastMs === 18.25 && snap.lastTier === "compiled" && snap.totalEvents === 1,
   ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkAgUiStateSnapshot(): boolean {
+  console.log("\n▶ ag-ui-state-snapshot");
+  const cases: Array<[string, boolean]> = [];
+
+  const seed = createDocument(createSeedState());
+  const encoded = encodeStateSnapshot("sess-eval", 3, seed);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["encode type is STATE_SNAPSHOT", encoded.type === "STATE_SNAPSHOT"]);
+  cases.push([
+    "encode keeps session seq state and ui",
+    encoded.sessionId === "sess-eval" &&
+      encoded.seq === 3 &&
+      encoded.state === seed.state &&
+      encoded.ui === seed.ui,
+  ]);
+  cases.push([
+    "encode uses state+ui not document",
+    !("document" in encoded) && encoded.state != null && encoded.ui != null,
+  ]);
+  cases.push(["parse accepts a valid snapshot", parsed?.type === "STATE_SNAPSHOT"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "STATE_SNAPSHOT" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.seq === 3 &&
+      (parsed.state as { meta?: { theme?: string } }).meta?.theme ===
+        seed.state.meta.theme &&
+      parsed.ui.rootId === seed.ui.rootId,
+  ]);
+
+  const missingSeq = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    state: seed.state,
+    ui: seed.ui,
+  });
+  cases.push(["parse rejects a missing seq", missingSeq === null]);
+
+  const missingState = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    seq: 3,
+    ui: seed.ui,
+  });
+  cases.push(["parse rejects a missing state", missingState === null]);
+
+  const missingUi = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    seq: 3,
+    state: seed.state,
+  });
+  cases.push(["parse rejects a missing ui", missingUi === null]);
+
+  const nullState = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    seq: 3,
+    state: null,
+    ui: seed.ui,
+  });
+  cases.push(["parse rejects a null state", nullState === null]);
+
+  const uiWithoutRoot = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    seq: 3,
+    state: seed.state,
+    ui: { widgets: seed.ui.widgets },
+  });
+  cases.push(["parse rejects ui without a rootId", uiWithoutRoot === null]);
+
+  const missingSession = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    seq: 3,
+    state: seed.state,
+    ui: seed.ui,
+  });
+  cases.push(["parse rejects a missing session", missingSession === null]);
+
+  const badSeq = parseAgUiMessage({
+    type: "STATE_SNAPSHOT",
+    sessionId: "sess-eval",
+    seq: "3",
+    state: seed.state,
+    ui: seed.ui,
+  });
+  cases.push(["parse rejects a non-number seq", badSeq === null]);
+
+  cases.push(["seed starts on cupertino", seed.state.meta.theme === "cupertino"]);
+  if (parsed?.type === "STATE_SNAPSHOT") {
+    const state = parsed.state as { meta?: { theme?: string } };
+    const ui = parsed.ui as { rootId?: string };
+    cases.push([
+      "parsed snapshot keeps the seed theme and ui root",
+      state?.meta?.theme === "cupertino" && ui?.rootId === seed.ui.rootId,
+    ]);
+
+    const room = new SessionRoom("eval-snap", "secret-token", true);
+    const applied = room.applySnapshot("secret-token", parsed.seq, {
+      state: parsed.state,
+      ui: parsed.ui,
+    });
+    cases.push([
+      "room accepts the parsed snapshot",
+      applied.ok === true && room.seq === 3,
+    ]);
+  } else {
+    cases.push(["parsed snapshot keeps the seed theme and ui root", false]);
+    cases.push(["room accepts the parsed snapshot", false]);
+  }
 
   let passed = 0;
   for (const [name, ok] of cases) {
@@ -888,6 +1011,7 @@ const sequences = readdirSync(seqDir)
 let allOk =
   checkAgUiPrefetchHit() &&
   checkAgUiRunFinished() &&
+  checkAgUiStateSnapshot() &&
   checkPlannerContextPack() &&
   (await checkPackedOpenRouterPrompt()) &&
   checkSessionConflictPolicy() &&
