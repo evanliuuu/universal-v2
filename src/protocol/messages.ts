@@ -29,7 +29,19 @@ export const AgUiMessageSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("EVENT"),
     sessionId: z.string(),
-    event: z.unknown(),
+    event: z
+      .object({
+        seq: z.number(),
+        event: z
+          .object({
+            type: z.string(),
+          })
+          .passthrough(),
+        tier: z.string(),
+        patches: z.array(z.unknown()).optional(),
+        latencyMs: z.number().optional(),
+      })
+      .passthrough(),
   }),
   z.object({
     type: z.literal("PREFETCH_HIT"),

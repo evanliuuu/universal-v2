@@ -45,6 +45,7 @@ import { runEnduranceSession } from "../src/runtime/session-endurance";
 import { WidgetNode } from "../src/protocol/types";
 import { eventKey } from "../src/protocol/messages";
 import {
+  encodeEvent,
   encodePrefetchHit,
   encodeRunFinished,
   encodeStateSnapshot,
@@ -398,6 +399,133 @@ function checkAgUiRunFinished(): boolean {
     "health records peer run latency",
     snap.lastMs === 18.25 && snap.lastTier === "compiled" && snap.totalEvents === 1,
   ]);
+
+  let passed = 0;
+  for (const [name, ok] of cases) {
+    console.log(`  ${ok ? "✓" : "✗"} ${name}`);
+    if (ok) passed++;
+  }
+  console.log(`  ${passed}/${cases.length} passed`);
+  return passed === cases.length;
+}
+
+function checkAgUiEvent(): boolean {
+  console.log("\n▶ ag-ui-event");
+  const cases: Array<[string, boolean]> = [];
+
+  const record = {
+    sessionId: "sess-eval",
+    seq: 7,
+    event: {
+      type: "click" as const,
+      targetId: "dock-calendar",
+      at: "2026-09-15T16:00:00.000Z",
+    },
+    tier: "reflex",
+    patches: [],
+    latencyMs: 4.5,
+    at: "2026-09-15T16:00:00.000Z",
+  };
+  const encoded = encodeEvent("sess-eval", record);
+  const parsed = parseAgUiMessage(encoded);
+
+  cases.push(["encode type is EVENT", encoded.type === "EVENT"]);
+  cases.push([
+    "encode keeps session and event payload",
+    encoded.sessionId === "sess-eval" && encoded.event === record,
+  ]);
+  cases.push(["parse accepts a valid event", parsed?.type === "EVENT"]);
+  cases.push([
+    "parsed payload matches encode",
+    parsed?.type === "EVENT" &&
+      parsed.sessionId === "sess-eval" &&
+      parsed.event.seq === 7 &&
+      parsed.event.tier === "reflex" &&
+      parsed.event.event.type === "click" &&
+      parsed.event.latencyMs === 4.5,
+  ]);
+
+  const missingEvent = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+  });
+  cases.push(["parse rejects a missing event", missingEvent === null]);
+
+  const nullEvent = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+    event: null,
+  });
+  cases.push(["parse rejects a null event", nullEvent === null]);
+
+  const missingSeq = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+    event: {
+      event: { type: "click" },
+      tier: "reflex",
+    },
+  });
+  cases.push(["parse rejects a missing seq", missingSeq === null]);
+
+  const missingNestedType = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+    event: {
+      seq: 1,
+      event: { targetId: "dock-calendar" },
+      tier: "reflex",
+    },
+  });
+  cases.push(["parse rejects a nested event without a type", missingNestedType === null]);
+
+  const missingTier = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+    event: {
+      seq: 1,
+      event: { type: "click" },
+    },
+  });
+  cases.push(["parse rejects a missing tier", missingTier === null]);
+
+  const missingSession = parseAgUiMessage({
+    type: "EVENT",
+    event: record,
+  });
+  cases.push(["parse rejects a missing session", missingSession === null]);
+
+  const badSeq = parseAgUiMessage({
+    type: "EVENT",
+    sessionId: "sess-eval",
+    event: {
+      seq: "7",
+      event: { type: "click" },
+      tier: "reflex",
+    },
+  });
+  cases.push(["parse rejects a non-number seq", badSeq === null]);
+
+  if (parsed?.type === "EVENT") {
+    const room = new SessionRoom("eval-event", "secret-token", true);
+    const applied = room.appendEvent("secret-token", {
+      sessionId: parsed.sessionId,
+      seq: parsed.event.seq,
+      event: parsed.event.event,
+      tier: parsed.event.tier,
+      patches: parsed.event.patches ?? [],
+      latencyMs: parsed.event.latencyMs,
+      at: record.at,
+    });
+    cases.push([
+      "room accepts the parsed event",
+      applied.ok === true &&
+        room.events.length === 1 &&
+        room.events[0]?.seq === 7,
+    ]);
+  } else {
+    cases.push(["room accepts the parsed event", false]);
+  }
 
   let passed = 0;
   for (const [name, ok] of cases) {
@@ -1012,6 +1140,7 @@ let allOk =
   checkAgUiPrefetchHit() &&
   checkAgUiRunFinished() &&
   checkAgUiStateSnapshot() &&
+  checkAgUiEvent() &&
   checkPlannerContextPack() &&
   (await checkPackedOpenRouterPrompt()) &&
   checkSessionConflictPolicy() &&

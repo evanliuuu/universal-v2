@@ -193,6 +193,23 @@ export class UniversalRuntime {
         this.onStats?.();
       }
     }
+
+    if (msg.type === "EVENT") {
+      const parsed = parseAgUiMessage(msg);
+      if (parsed?.type === "EVENT") {
+        const record = parsed.event;
+        this.store.appendLog({
+          seq: record.seq,
+          event: record.event as SemanticEvent,
+          tier: record.tier as ExecutionTier,
+          patches: Array.isArray(record.patches)
+            ? (record.patches as AppliedPatch[])
+            : [],
+          latencyMs: record.latencyMs,
+        });
+        this.onStats?.();
+      }
+    }
   }
 
   onStatsChange(fn: () => void) {
